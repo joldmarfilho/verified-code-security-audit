@@ -14,6 +14,14 @@ from verified_code_security_audit.pdf import (
 
 
 class PdfTests(unittest.TestCase):
+    def _extract(self, report: dict, locale: str = "en") -> str:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "report.pdf"
+            render_pdf(report, load_locale(locale), path)
+            return "\n".join(
+                page.extract_text() or "" for page in PdfReader(path).pages
+            )
+
     def test_renders_unicode_portuguese_title(self) -> None:
         report = valid_report("pt-BR")
         with tempfile.TemporaryDirectory() as directory:
@@ -36,6 +44,30 @@ class PdfTests(unittest.TestCase):
             path.write_bytes(b"not a pdf")
             with self.assertRaisesRegex(ValueError, "invalid PDF"):
                 verify_pdf_structure(path)
+
+    def test_complete_report_contains_sections_and_records(self) -> None:
+        strings = load_locale("en")
+        text = self._extract(valid_report())
+
+        for key, value in strings.items():
+            if key.startswith("section."):
+                self.assertIn(value, text)
+        for value in ("F1", "F2", "F3", "R1", "FastAPI", "18 / 18"):
+            self.assertIn(value, text)
+        self.assertIn(strings["disclaimer"], text)
+
+    def test_empty_report_keeps_every_section_and_empty_state(self) -> None:
+        report = valid_report()
+        report["findings"] = []
+        report["strengths"] = []
+        report["recommendations"] = []
+        strings = load_locale("en")
+        text = self._extract(report)
+
+        self.assertIn(strings["chart.no_findings"], text)
+        for key, value in strings.items():
+            if key.startswith("section."):
+                self.assertIn(value, text)
 
 
 if __name__ == "__main__":

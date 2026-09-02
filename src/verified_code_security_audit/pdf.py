@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 from collections import Counter
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from io import BytesIO
 from pathlib import Path
+from textwrap import fill
 from xml.sax.saxutils import escape
 
 import matplotlib
@@ -22,18 +23,25 @@ from reportlab.lib.units import cm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import (
+    Flowable,
     Image,
+    KeepTogether,
     PageBreak,
     Paragraph,
+    Preformatted,
     SimpleDocTemplate,
     Spacer,
+    Table,
+    TableStyle,
+    XPreformatted,
 )
 
-from verified_code_security_audit.markdown import group_actionable_findings
+from verified_code_security_audit.markdown import render_issues
 
 _FONT_REGISTERED = False
 _FONT_REGULAR = "VCSA-DejaVu"
 _FONT_BOLD = "VCSA-DejaVu-Bold"
+_SEVERITY_ORDER = ("critical", "high", "medium", "low", "informational")
 _SEVERITY_COLORS = {
     "critical": "#7F1D1D",
     "high": "#DC2626",
@@ -102,7 +110,7 @@ def severity_chart(
         axis.set_axis_off()
         return _save_chart(fig)
 
-    labels = list(counts)
+    labels = [severity for severity in _SEVERITY_ORDER if counts[severity]]
     values = [counts[label] for label in labels]
     axis.pie(
         values,
@@ -110,7 +118,9 @@ def severity_chart(
         colors=[_SEVERITY_COLORS[label] for label in labels],
         autopct=lambda value: f"{value:.0f}%",
         startangle=90,
+        wedgeprops={"width": 0.38, "edgecolor": "white"},
     )
+    axis.text(0, 0, str(sum(values)), ha="center", va="center", fontsize=18, fontweight="bold")
     axis.axis("equal")
     return _save_chart(fig)
 
@@ -136,11 +146,28 @@ def category_chart(
         axis.set_axis_off()
         return _save_chart(fig)
 
-    labels = list(counts)
-    values = [counts[label] for label in labels]
-    axis.bar(labels, values, color="#2563EB")
-    axis.set_ylabel(strings["summary.total_findings"])
-    axis.tick_params(axis="x", rotation=20)
+    category_names = {
+        str(item["id"]): str(item["name"])
+        for item in report["categories"]  # type: ignore[index]
+    }
+    severity_rank = {name: index for index, name in enumerate(_SEVERITY_ORDER)}
+    worst: dict[str, str] = {}
+    for finding in findings:  # type: ignore[assignment]
+        category_id = str(finding["category_id"])
+        severity = str(finding["severity"])
+        current = worst.get(category_id)
+        if current is None or severity_rank[severity] < severity_rank[current]:
+            worst[category_id] = severity
+
+    category_ids = list(counts)
+    labels = [fill(category_names.get(value, value), width=30) for value in category_ids]
+    values = [counts[value] for value in category_ids]
+    colors_by_category = [_SEVERITY_COLORS[worst[value]] for value in category_ids]
+    axis.barh(labels, values, color=colors_by_category)
+    axis.set_xlabel(strings["summary.total_findings"])
+    axis.invert_yaxis()
+    axis.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+    fig.tight_layout()
     return _save_chart(fig)
 
 
@@ -211,6 +238,55 @@ def _styles() -> dict[str, ParagraphStyle]:
             textColor=colors.HexColor("#64748B"),
             spaceAfter=5,
         ),
+        "finding_title": ParagraphStyle(
+            "VCSAFindingTitle",
+            parent=base["Heading3"],
+            fontName=_FONT_BOLD,
+            fontSize=11,
+            leading=15,
+            textColor=colors.HexColor("#0F172A"),
+            spaceBefore=8,
+            spaceAfter=5,
+        ),
+        "evidence_location": ParagraphStyle(
+            "VCSAEvidenceLocation",
+            parent=base["BodyText"],
+            fontName=_FONT_BOLD,
+            fontSize=8,
+            leading=10,
+            textColor=colors.HexColor("#334155"),
+            spaceBefore=5,
+            spaceAfter=3,
+        ),
+        "code": ParagraphStyle(
+            "VCSACode",
+            parent=base["Code"],
+            fontName=_FONT_REGULAR,
+            fontSize=7.2,
+            leading=9.2,
+            textColor=colors.HexColor("#0F172A"),
+            backColor=colors.HexColor("#F1F5F9"),
+            borderColor=colors.HexColor("#CBD5E1"),
+            borderWidth=0.5,
+            borderPadding=6,
+            spaceAfter=6,
+        ),
+        "table_header": ParagraphStyle(
+            "VCSATableHeader",
+            parent=base["BodyText"],
+            fontName=_FONT_BOLD,
+            fontSize=7.5,
+            leading=9.5,
+            textColor=colors.white,
+        ),
+        "table_cell": ParagraphStyle(
+            "VCSATableCell",
+            parent=base["BodyText"],
+            fontName=_FONT_REGULAR,
+            fontSize=7.2,
+            leading=9.5,
+            textColor=colors.HexColor("#1E293B"),
+        ),
     }
 
 
@@ -240,12 +316,129 @@ def _section(
     story.append(_paragraph(body, styles["body"]))
 
 
+def _table_style() -> TableStyle:
+    return TableStyle(
+        [
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#0F4C81")),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#CBD5E1")),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F8FAFC")]),
+            ("LEFTPADDING", (0, 0), (-1, -1), 6),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+            ("TOPPADDING", (0, 0), (-1, -1), 5),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ]
+    )
+
+
+def _evidence_blocks(
+    items: Sequence[Mapping[str, object]],
+    styles: Mapping[str, ParagraphStyle],
+) -> list[Flowable]:
+    blocks: list[Flowable] = []
+    for item in items:
+        end = item.get("end_line")
+        location = f"{item['path']}:{item['start_line']}"
+        if end is not None and end != item["start_line"]:
+            location += f"-{end}"
+        blocks.append(_paragraph(location, styles["evidence_location"]))
+        blocks.append(
+            XPreformatted(
+                escape(str(item["snippet"])),
+                styles["code"],
+            )
+        )
+    return blocks
+
+
+def _severity_chip(
+    severity: str,
+    strings: Mapping[str, str],
+    styles: Mapping[str, ParagraphStyle],
+) -> Table:
+    chip = Table(
+        [[_paragraph(strings[f"severity.{severity}"], styles["table_header"])]],
+        colWidths=[3.2 * cm],
+    )
+    chip.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor(_SEVERITY_COLORS[severity])),
+                ("BOX", (0, 0), (-1, -1), 0, colors.transparent),
+                ("LEFTPADDING", (0, 0), (-1, -1), 7),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 7),
+                ("TOPPADDING", (0, 0), (-1, -1), 3),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+            ]
+        )
+    )
+    return chip
+
+
+def _finding_card(
+    finding: Mapping[str, object],
+    strings: Mapping[str, str],
+    styles: Mapping[str, ParagraphStyle],
+) -> KeepTogether:
+    severity = str(finding["severity"])
+    confidence = str(finding["confidence"])
+    preconditions = "\n".join(f"- {value}" for value in finding["preconditions"])
+    acceptance = "\n".join(
+        f"- {value}" for value in finding["acceptance_criteria"]
+    )
+    references = ", ".join(str(value) for value in finding["references"]) or "—"
+    blocks: list[Flowable] = [
+        _severity_chip(severity, strings, styles),
+        _paragraph(
+            f"{finding['id']} — {finding['title']}",
+            styles["finding_title"],
+        ),
+        _paragraph(str(finding["description"]), styles["body"]),
+        _paragraph(
+            f"{strings['label.confidence']}: {strings[f'confidence.{confidence}']}",
+            styles["body"],
+        ),
+        _paragraph(
+            f"{strings['label.preconditions']}:\n{preconditions}",
+            styles["body"],
+        ),
+        _paragraph(
+            f"{strings['label.exploit_path']}: {finding['exploit_path']}",
+            styles["body"],
+        ),
+        _paragraph(strings["label.evidence"], styles["finding_title"]),
+    ]
+    blocks.extend(_evidence_blocks(finding["evidence"], styles))
+    blocks.extend(
+        [
+            _paragraph(
+                f"{strings['label.impact']}: {finding['impact']}",
+                styles["body"],
+            ),
+            _paragraph(
+                f"{strings['label.remediation']}: {finding['remediation']}",
+                styles["body"],
+            ),
+            _paragraph(
+                f"{strings['label.acceptance']}:\n{acceptance}",
+                styles["body"],
+            ),
+            _paragraph(
+                f"{strings['label.references']}: {references}",
+                styles["small"],
+            ),
+            Spacer(1, 0.25 * cm),
+        ]
+    )
+    return KeepTogether(blocks)
+
+
 def render_pdf(
     report: Mapping[str, object],
     strings: Mapping[str, str],
     output_path: Path,
 ) -> None:
-    """Render the initial localized audit-report document skeleton."""
+    """Render a complete localized audit report and verify the output."""
 
     styles = _styles()
     metadata = report["metadata"]  # type: ignore[assignment]
@@ -269,94 +462,233 @@ def render_pdf(
         creator="Verified Code Security Audit",
     )
 
-    story: list[object] = [
+    severity_counts = Counter(str(item["severity"]) for item in findings)
+    severity_summary = " | ".join(
+        f"{strings[f'severity.{severity}']}: {severity_counts[severity]}"
+        for severity in _SEVERITY_ORDER
+    )
+
+    story: list[Flowable] = [
         Spacer(1, 3.2 * cm),
         _paragraph(strings["report.title"], styles["title"]),
         _paragraph(strings["report.subtitle"], styles["subtitle"]),
         Spacer(1, 0.8 * cm),
-        _paragraph(metadata["project_name"], styles["title"]),
         _paragraph(
-            f"{metadata['repository']}\n{metadata['revision']}",
+            f"{strings['label.project']}: {metadata['project_name']}",
+            styles["title"],
+        ),
+        _paragraph(
+            f"{metadata['repository']}\n"
+            f"{strings['label.revision']}: {metadata['revision']}\n"
+            f"{strings['label.audit_date']}: {metadata['audited_at']}",
             styles["small"],
         ),
         Spacer(1, 0.6 * cm),
-        _paragraph(scope["summary"], styles["body"]),
+        _paragraph(
+            f"{strings['label.scope']}: {scope['summary']}",
+            styles["body"],
+        ),
+        _paragraph(severity_summary, styles["body"]),
         Spacer(1, 1.0 * cm),
         _paragraph(strings["disclaimer"], styles["small"]),
         PageBreak(),
     ]
 
-    _section(
-        story,
-        styles,
-        strings["section.executive_summary"],
-        f"{strings['summary.total_findings']}: {len(findings)} · "
-        f"{strings['summary.total_strengths']}: {len(strengths)}",
+    story.append(_paragraph(strings["section.executive_summary"], styles["heading"]))
+    story.append(
+        _paragraph(
+            f"{strings['summary.total_findings']}: {len(findings)} | "
+            f"{strings['summary.total_strengths']}: {len(strengths)}",
+            styles["body"],
+        )
     )
-    _section(
-        story,
-        styles,
-        strings["section.methodology"],
-        scope["summary"],
+    severity_image = severity_chart(report, strings)
+    category_image = category_chart(report, strings)
+    chart_table = Table(
+        [[
+            Image(severity_image, width=7.7 * cm, height=4.2 * cm),
+            Image(category_image, width=7.7 * cm, height=4.2 * cm),
+        ]],
+        colWidths=[8.1 * cm, 8.1 * cm],
     )
-    _section(
-        story,
-        styles,
-        strings["section.stack"],
-        f"{len(report['stack'])} component(s) recorded.",
-    )
-    reviewed = sum(int(item["reviewed"]) for item in report["coverage"])  # type: ignore[index]
-    _section(
-        story,
-        styles,
-        strings["section.coverage"],
-        f"{reviewed} item(s) reviewed across {len(report['coverage'])} surface(s).",
-    )
-    _section(
-        story,
-        styles,
-        strings["section.strengths"],
-        f"{len(strengths)} {strings['summary.total_strengths'].lower()}.",
-    )
-    _section(
-        story,
-        styles,
-        strings["section.weaknesses"],
-        f"{len(findings)} {strings['summary.total_findings'].lower()}.",
-    )
-    _section(
-        story,
-        styles,
-        strings["section.findings"],
-        strings["chart.no_findings"] if not findings else f"{len(findings)}",
-    )
-    if findings:
-        severity_image = severity_chart(report, strings)
-        category_image = category_chart(report, strings)
-        story.extend(
+    chart_table.setStyle(
+        TableStyle(
             [
-                Image(severity_image, width=14.5 * cm, height=7.4 * cm),
-                Image(category_image, width=14.5 * cm, height=7.4 * cm),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 4),
             ]
         )
-    _section(
-        story,
-        styles,
-        strings["section.recommendations"],
-        str(len(recommendations)),
     )
-    _section(
-        story,
-        styles,
-        strings["section.limitations"],
-        str(len(limitations)),
+    story.append(chart_table)
+
+    story.append(_paragraph(strings["section.methodology"], styles["heading"]))
+    story.append(_paragraph(scope["summary"], styles["body"]))
+    included = "\n".join(f"- {value}" for value in scope["included_paths"])
+    story.append(_paragraph(included, styles["small"]))
+    for excluded in scope["excluded_paths"]:
+        story.append(
+            _paragraph(
+                f"{excluded['path']}: {excluded['reason']}",
+                styles["small"],
+            )
+        )
+
+    story.append(_paragraph(strings["section.stack"], styles["heading"]))
+    if not report["stack"]:
+        story.append(_paragraph(strings["empty.generic"], styles["body"]))
+    for component in report["stack"]:  # type: ignore[assignment]
+        version = f" {component['version']}" if component.get("version") else ""
+        story.append(
+            _paragraph(
+                f"{component['name']}{version} — {component['kind']}",
+                styles["finding_title"],
+            )
+        )
+        story.extend(_evidence_blocks(component["evidence"], styles))
+
+    story.append(_paragraph(strings["section.coverage"], styles["heading"]))
+    coverage_rows: list[list[Flowable]] = [
+        [
+            _paragraph(strings["table.description"], styles["table_header"]),
+            _paragraph(strings["table.status"], styles["table_header"]),
+            _paragraph(strings["table.coverage"], styles["table_header"]),
+            _paragraph(strings["table.method"], styles["table_header"]),
+        ]
+    ]
+    for item in report["coverage"]:  # type: ignore[assignment]
+        discovered = "—" if item["discovered"] is None else str(item["discovered"])
+        coverage_value = f"{item['reviewed']} / {discovered}"
+        exclusions = "\n".join(str(value) for value in item["exclusions"])
+        method = str(item["method"])
+        if exclusions:
+            method = f"{method}\n{exclusions}"
+        coverage_rows.append(
+            [
+                _paragraph(str(item["surface"]), styles["table_cell"]),
+                _paragraph(strings[f"coverage.{item['status']}"], styles["table_cell"]),
+                _paragraph(coverage_value, styles["table_cell"]),
+                _paragraph(method, styles["table_cell"]),
+            ]
+        )
+    coverage_table = Table(
+        coverage_rows,
+        colWidths=[4.0 * cm, 2.7 * cm, 2.4 * cm, 7.0 * cm],
+        repeatRows=1,
     )
-    issue_groups = group_actionable_findings(report)
-    _section(
-        story,
-        styles,
-        strings["section.github_issues"],
-        strings["issue.none"] if not issue_groups else str(len(issue_groups)),
+    coverage_table.setStyle(_table_style())
+    story.append(coverage_table)
+
+    story.append(_paragraph(strings["section.strengths"], styles["heading"]))
+    if not strengths:
+        story.append(_paragraph(strings["empty.strengths"], styles["body"]))
+    for strength in strengths:
+        story.append(_paragraph(str(strength["title"]), styles["finding_title"]))
+        story.append(_paragraph(str(strength["description"]), styles["body"]))
+        story.extend(_evidence_blocks(strength["evidence"], styles))
+
+    story.append(_paragraph(strings["section.weaknesses"], styles["heading"]))
+    if not findings:
+        story.append(_paragraph(strings["chart.no_findings"], styles["body"]))
+    for finding in findings:
+        severity = str(finding["severity"])
+        story.append(
+            _paragraph(
+                f"{finding['id']} | {strings[f'severity.{severity}']} | "
+                f"{finding['title']} — {finding['impact']}",
+                styles["body"],
+            )
+        )
+
+    story.append(_paragraph(strings["section.findings"], styles["heading"]))
+    if not findings:
+        story.append(_paragraph(strings["chart.no_findings"], styles["body"]))
+    for finding in findings:
+        story.append(_finding_card(finding, strings, styles))
+
+    story.append(_paragraph(strings["section.recommendations"], styles["heading"]))
+    if not recommendations:
+        story.append(_paragraph(strings["empty.recommendations"], styles["body"]))
+    else:
+        priority_rank = {"P1": 0, "P2": 1, "P3": 2}
+        recommendation_rows: list[list[Flowable]] = [
+            [
+                _paragraph(strings["table.priority"], styles["table_header"]),
+                _paragraph(strings["table.id"], styles["table_header"]),
+                _paragraph(strings["table.description"], styles["table_header"]),
+                _paragraph(strings["table.related_findings"], styles["table_header"]),
+            ]
+        ]
+        ordered_recommendations = sorted(
+            recommendations,
+            key=lambda value: (
+                priority_rank[str(value["priority"])],
+                str(value["id"]),
+            ),
+        )
+        for recommendation in ordered_recommendations:
+            recommendation_rows.append(
+                [
+                    _paragraph(str(recommendation["priority"]), styles["table_cell"]),
+                    _paragraph(str(recommendation["id"]), styles["table_cell"]),
+                    _paragraph(
+                        f"{recommendation['title']}\n{recommendation['details']}",
+                        styles["table_cell"],
+                    ),
+                    _paragraph(
+                        ", ".join(str(value) for value in recommendation["finding_ids"]),
+                        styles["table_cell"],
+                    ),
+                ]
+            )
+        recommendation_table = Table(
+            recommendation_rows,
+            colWidths=[1.8 * cm, 1.6 * cm, 9.0 * cm, 3.7 * cm],
+            repeatRows=1,
+        )
+        recommendation_table.setStyle(_table_style())
+        story.append(recommendation_table)
+
+    story.append(_paragraph(strings["section.limitations"], styles["heading"]))
+    if not limitations:
+        story.append(_paragraph(strings["empty.limitations"], styles["body"]))
+    for limitation in limitations:
+        affected = ", ".join(str(value) for value in limitation["affected_paths"])
+        story.append(
+            _paragraph(
+                f"{limitation['title']} — {limitation['details']} ({affected})",
+                styles["body"],
+            )
+        )
+    story.append(_paragraph(strings["label.categories"], styles["finding_title"]))
+    if not report["categories"]:
+        story.append(_paragraph(strings["empty.generic"], styles["body"]))
+    for category in report["categories"]:  # type: ignore[assignment]
+        category_status = strings[f"category.{category['status']}"]
+        story.append(
+            _paragraph(
+                f"{category['id']} | {category['name']} | "
+                f"{category_status} — {category['summary']}",
+                styles["body"],
+            )
+        )
+        story.extend(_evidence_blocks(category["evidence"], styles))
+
+    story.append(_paragraph(strings["section.github_issues"], styles["heading"]))
+    issue_text = render_issues(report, strings)
+    story.append(
+        Preformatted(
+            escape(issue_text),
+            styles["code"],
+            maxLineLength=100,
+            splitChars=" /.-_",
+        )
+    )
+    story.extend(
+        [
+            Spacer(1, 0.5 * cm),
+            _paragraph(strings["disclaimer"], styles["small"]),
+        ]
     )
 
     decorate = lambda canvas, current_doc: _page_decorations(
