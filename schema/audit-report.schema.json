@@ -1,0 +1,195 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/joldmarfilho/verified-code-security-audit/schema/audit-report.schema.json",
+  "title": "Verified Code Security Audit Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "metadata",
+    "scope",
+    "stack",
+    "coverage",
+    "categories",
+    "findings",
+    "strengths",
+    "recommendations",
+    "limitations"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "metadata": {"$ref": "#/$defs/metadata"},
+    "scope": {"$ref": "#/$defs/scope"},
+    "stack": {"type": "array", "items": {"$ref": "#/$defs/stack_component"}, "maxItems": 100},
+    "coverage": {"type": "array", "items": {"$ref": "#/$defs/coverage"}, "maxItems": 200},
+    "categories": {"type": "array", "items": {"$ref": "#/$defs/category"}, "maxItems": 100},
+    "findings": {"type": "array", "items": {"$ref": "#/$defs/finding"}, "maxItems": 500},
+    "strengths": {"type": "array", "items": {"$ref": "#/$defs/strength"}, "maxItems": 500},
+    "recommendations": {"type": "array", "items": {"$ref": "#/$defs/recommendation"}, "maxItems": 500},
+    "limitations": {"type": "array", "items": {"$ref": "#/$defs/limitation"}, "maxItems": 100}
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+    },
+    "narrative": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 12000
+    },
+    "relative_path": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500,
+      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*\\\\)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["project_name", "repository", "revision", "branch", "audited_at", "worktree_dirty", "content_locale"],
+      "properties": {
+        "project_name": {"$ref": "#/$defs/narrative"},
+        "repository": {"type": "string", "minLength": 1, "maxLength": 1000},
+        "revision": {"type": "string", "minLength": 7, "maxLength": 64},
+        "branch": {"type": ["string", "null"], "maxLength": 255},
+        "audited_at": {"type": "string", "format": "date-time"},
+        "worktree_dirty": {"type": "boolean"},
+        "content_locale": {"enum": ["en", "pt-BR"]}
+      }
+    },
+    "excluded_path": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "reason"],
+      "properties": {
+        "path": {"$ref": "#/$defs/relative_path"},
+        "reason": {"$ref": "#/$defs/narrative"}
+      }
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["summary", "included_paths", "excluded_paths"],
+      "properties": {
+        "summary": {"$ref": "#/$defs/narrative"},
+        "included_paths": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/relative_path"},
+          "uniqueItems": true,
+          "maxItems": 1000
+        },
+        "excluded_paths": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/excluded_path"},
+          "maxItems": 1000
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "start_line", "snippet"],
+      "properties": {
+        "path": {"$ref": "#/$defs/relative_path"},
+        "start_line": {"type": "integer", "minimum": 1},
+        "end_line": {"type": "integer", "minimum": 1},
+        "snippet": {"type": "string", "minLength": 1, "maxLength": 4000}
+      }
+    },
+    "stack_component": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "name", "evidence"],
+      "properties": {
+        "kind": {"$ref": "#/$defs/identifier"},
+        "name": {"$ref": "#/$defs/narrative"},
+        "version": {"type": ["string", "null"], "maxLength": 255},
+        "evidence": {"type": "array", "items": {"$ref": "#/$defs/evidence"}, "minItems": 1, "maxItems": 100}
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["surface", "status", "discovered", "reviewed", "method", "exclusions"],
+      "properties": {
+        "surface": {"$ref": "#/$defs/narrative"},
+        "status": {"enum": ["exhaustive", "sampled", "limited", "not-applicable"]},
+        "discovered": {"type": ["integer", "null"], "minimum": 0},
+        "reviewed": {"type": "integer", "minimum": 0},
+        "method": {"$ref": "#/$defs/narrative"},
+        "exclusions": {"type": "array", "items": {"$ref": "#/$defs/narrative"}, "maxItems": 1000}
+      }
+    },
+    "category": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "status", "summary", "evidence"],
+      "properties": {
+        "id": {"$ref": "#/$defs/identifier"},
+        "name": {"$ref": "#/$defs/narrative"},
+        "status": {"enum": ["reviewed", "not-applicable", "limited", "not-reviewed"]},
+        "summary": {"$ref": "#/$defs/narrative"},
+        "evidence": {"type": "array", "items": {"$ref": "#/$defs/evidence"}, "maxItems": 100}
+      }
+    },
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id", "category_id", "severity", "confidence", "title", "description",
+        "preconditions", "exploit_path", "impact", "evidence", "remediation",
+        "acceptance_criteria", "actionable", "references"
+      ],
+      "properties": {
+        "id": {"$ref": "#/$defs/identifier"},
+        "category_id": {"$ref": "#/$defs/identifier"},
+        "severity": {"enum": ["critical", "high", "medium", "low", "informational"]},
+        "confidence": {"enum": ["high", "medium", "low"]},
+        "title": {"$ref": "#/$defs/narrative"},
+        "description": {"$ref": "#/$defs/narrative"},
+        "preconditions": {"type": "array", "items": {"$ref": "#/$defs/narrative"}, "maxItems": 100},
+        "exploit_path": {"$ref": "#/$defs/narrative"},
+        "impact": {"$ref": "#/$defs/narrative"},
+        "evidence": {"type": "array", "items": {"$ref": "#/$defs/evidence"}, "minItems": 1, "maxItems": 100},
+        "remediation": {"$ref": "#/$defs/narrative"},
+        "acceptance_criteria": {"type": "array", "items": {"$ref": "#/$defs/narrative"}, "minItems": 1, "maxItems": 100},
+        "actionable": {"type": "boolean"},
+        "issue_group": {"$ref": "#/$defs/identifier"},
+        "references": {"type": "array", "items": {"type": "string", "minLength": 1, "maxLength": 500}, "maxItems": 100}
+      }
+    },
+    "strength": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "description", "evidence"],
+      "properties": {
+        "title": {"$ref": "#/$defs/narrative"},
+        "description": {"$ref": "#/$defs/narrative"},
+        "evidence": {"type": "array", "items": {"$ref": "#/$defs/evidence"}, "minItems": 1, "maxItems": 100}
+      }
+    },
+    "recommendation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "priority", "title", "details", "finding_ids"],
+      "properties": {
+        "id": {"$ref": "#/$defs/identifier"},
+        "priority": {"enum": ["P1", "P2", "P3"]},
+        "title": {"$ref": "#/$defs/narrative"},
+        "details": {"$ref": "#/$defs/narrative"},
+        "finding_ids": {"type": "array", "items": {"$ref": "#/$defs/identifier"}, "minItems": 1, "uniqueItems": true, "maxItems": 100}
+      }
+    },
+    "limitation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "details", "affected_paths"],
+      "properties": {
+        "title": {"$ref": "#/$defs/narrative"},
+        "details": {"$ref": "#/$defs/narrative"},
+        "affected_paths": {"type": "array", "items": {"$ref": "#/$defs/relative_path"}, "maxItems": 1000}
+      }
+    }
+  }
+}

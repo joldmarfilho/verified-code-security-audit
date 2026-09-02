@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "verified-code-security-audit"
+version = "0.1.0"
+description = "Validate and render evidence-backed code security audit reports."
+readme = "README.md"
+requires-python = ">=3.10"
+license = {file = "LICENSE"}
+authors = [{name = "Joldmar Filho"}]
+keywords = ["agent-skill", "application-security", "code-audit", "security-audit"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Security",
+]
+dependencies = [
+  "jsonschema>=4.21",
+  "matplotlib>=3.8",
+  "reportlab>=4.2",
+]
+
+[project.optional-dependencies]
+dev = ["pypdf>=5"]
+
+[project.scripts]
+vcsa = "verified_code_security_audit.cli:entrypoint"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+verified_code_security_audit = ["locales/*.json"]
+
+[tool.setuptools.data-files]
+"share/verified-code-security-audit/schema" = ["schema/audit-report.schema.json"]
