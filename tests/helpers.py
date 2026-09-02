@@ -86,9 +86,67 @@ def valid_report(locale: str = "en") -> dict[str, Any]:
                     "A same-organization booking remains accessible.",
                 ],
                 "actionable": True,
-                "issue_group": "tenant-authorization",
+                "issue_group": "authorization",
                 "references": ["CWE-639"],
-            }
+            },
+            {
+                "id": "F2",
+                "category_id": "tenant-isolation",
+                "severity": "medium",
+                "confidence": "high",
+                "title": (
+                    "Atualização de reserva aceita organização do payload"
+                    if portuguese
+                    else "Booking update trusts organization from the payload"
+                ),
+                "description": "The update flow trusts a caller-controlled organization identifier.",
+                "preconditions": ["An authenticated user can submit a booking update."],
+                "exploit_path": "PATCH /bookings/{id} forwards organization_id from the request body.",
+                "impact": "A user can attempt to move a booking into another organization.",
+                "evidence": [
+                    evidence(
+                        "app/api/bookings.py",
+                        67,
+                        "repository.update(booking_id, payload.model_dump())",
+                    )
+                ],
+                "remediation": "Derive organization scope from the authenticated principal.",
+                "acceptance_criteria": [
+                    "Organization scope is never accepted from the request body.",
+                    "A cross-organization booking id returns 404.",
+                ],
+                "actionable": True,
+                "issue_group": "authorization",
+                "references": ["CWE-639"],
+            },
+            {
+                "id": "F3",
+                "category_id": "tenant-isolation",
+                "severity": "informational",
+                "confidence": "high",
+                "title": (
+                    "Consultas administrativas têm escopo explícito"
+                    if portuguese
+                    else "Administrative queries use explicit scope"
+                ),
+                "description": "Administrative list queries explicitly apply organization scope.",
+                "preconditions": ["An administrator lists bookings."],
+                "exploit_path": "No exploit path was verified for this informational observation.",
+                "impact": "This control reduces accidental cross-organization data access.",
+                "evidence": [
+                    evidence(
+                        "app/api/admin.py",
+                        24,
+                        "repository.list_for_organization(principal.organization_id)",
+                    )
+                ],
+                "remediation": "Keep this explicit scope when refactoring administrative queries.",
+                "acceptance_criteria": [
+                    "Administrative booking lists remain scoped by organization."
+                ],
+                "actionable": False,
+                "references": [],
+            },
         ],
         "strengths": [
             {
@@ -103,7 +161,7 @@ def valid_report(locale: str = "en") -> dict[str, Any]:
                 "priority": "P1",
                 "title": "Scope booking queries by organization",
                 "details": "Centralize organization scoping in the booking repository.",
-                "finding_ids": ["F1"],
+                "finding_ids": ["F1", "F2"],
             }
         ],
         "limitations": [
