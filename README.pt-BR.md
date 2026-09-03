@@ -11,6 +11,8 @@
   <img alt="CI com GitHub Actions" src="https://img.shields.io/badge/GitHub_Actions-CI-2088FF?style=flat-square&amp;logo=githubactions&amp;logoColor=white">
   <img alt="Relatórios Markdown" src="https://img.shields.io/badge/Markdown-Reports-000000?style=flat-square&amp;logo=markdown&amp;logoColor=white">
   <img alt="Agent Skill para Codex" src="https://img.shields.io/badge/Agent_Skill-Codex-412991?style=flat-square&amp;logo=openai&amp;logoColor=white">
+  <img alt="Agent Skill para Claude Code" src="https://img.shields.io/badge/Agent_Skill-Claude_Code-D97706?style=flat-square&amp;logo=anthropic&amp;logoColor=white">
+  <img alt="Agent Skill para Antigravity" src="https://img.shields.io/badge/Agent_Skill-Antigravity-4285F4?style=flat-square&amp;logo=google&amp;logoColor=white">
   <a href="https://github.com/obra/superpowers"><img alt="Compatível com Superpowers" src="https://img.shields.io/badge/Superpowers-Compat%C3%ADvel-6B46C1?style=flat-square"></a>
   <img alt="Inglês e português do Brasil" src="https://img.shields.io/badge/Locales-EN_%7C_PT--BR-009C3B?style=flat-square">
   <a href="LICENSE"><img alt="Licença MIT" src="https://img.shields.io/badge/License-MIT-2EA44F?style=flat-square&amp;logo=opensourceinitiative&amp;logoColor=white"></a>
@@ -52,6 +54,13 @@ Claude Code:
 ```bash
 mkdir -p ~/.claude/skills
 git clone https://github.com/joldmarfilho/verified-code-security-audit.git ~/.claude/skills/verified-code-security-audit
+```
+
+Antigravity:
+
+```bash
+mkdir -p .agents/skills
+git clone https://github.com/joldmarfilho/verified-code-security-audit.git .agents/skills/verified-code-security-audit
 ```
 
 Use a skill explicitamente:
