@@ -50,25 +50,34 @@ Before evaluating vulnerabilities:
 
 ## Phase 2 — Required core categories
 
-Adapt each category to the detected stack:
+First detect the stack mechanism and adapt each category with real-world patterns:
 
-1. **Tenant or owner isolation:** identify the actual isolation mechanism, then
-   trace every list, lookup, aggregation, report, export, update, and delete path
-   to the final data operation. Confirm that scope comes from the authenticated
-   principal.
-2. **Server-side authorization parity:** map every frontend role/capability gate
-   to its endpoint, RPC, or job. Confirm independent backend enforcement for each
-   privileged operation.
-3. **IDOR/object authorization:** enumerate all backend handlers accepting object
-   IDs in path, query, body, header, event, or job payload. Review every handler;
-   do not call sampling exhaustive.
-4. **Secrets and unsafe defaults:** inspect source, configuration, deployment,
-   CI, scripts, docs, frontend build inputs, and available Git history. Include
-   credentials, signing material, private keys, fallback values, and missing
-   startup rejection.
-5. **Untrusted input/XSS:** trace user input into raw HTML/Markdown, templates,
-   email, URLs, DOM sinks, dynamic code, and backend HTML output. Confirm
-   context-appropriate escaping or sanitization at each sink.
+1. **TENANT / OWNER ISOLATION (database without locks):**
+   - Identify the project's actual isolation mechanism (e.g., Supabase/PostgreSQL RLS, tenant middleware in Node/FastAPI/Rails, manual filtering by `user_id`/`tenant_id`/`workspace_id` in ORM or query builders).
+   - Trace all listing, lookup, search, aggregation, report, export, update, and delete queries to the final database operation.
+   - In Supabase/PostgreSQL, identify tables missing RLS or misconfigured `USING`/`WITH CHECK` policies. In custom APIs, flag queries or endpoints failing to filter by the authenticated user or organization. Confirm scope strictly derives from the authenticated token/session, never from unvalidated client parameters.
+
+2. **PERMISSIONS DEFINED IN THE BROWSER (authorization parity):**
+   - Identify privileged operations (admin panels, settings, user management, writes, deletions, or billing).
+   - Map frontend role or capability gates (`isAdmin`, `canEdit`, `role === 'admin'`, UI permission checks in React/Vue/Angular/Svelte, or hidden buttons).
+   - Cross-reference every frontend gate with its corresponding backend endpoint, RPC, or job. Confirm that the server independently enforces privileges on every sensitive route. Hiding a button in the UI is not authorization.
+
+3. **IDOR (object-level authorization):**
+   - Enumerate and systematically review ALL backend route handlers (REST, GraphQL, tRPC, RPC) that accept object identifiers in path, query, body, header, or job payloads.
+   - Do not use informal sampling: verify that looking up, updating, or deleting an object by ID strictly checks that the object belongs to the caller's user/tenant before executing the operation.
+
+4. **EXPOSED KEYS AND UNSAFE DEFAULTS (hardcoding & configuration):**
+   - Review source code, config files, `docker-compose`, Helm charts, CI/CD pipelines, scripts, documentation, environment variables, and available Git history.
+   - Check for embedded API keys, tokens, passwords, private keys, signing secrets (JWT, webhooks), and default credentials.
+   - Pay special attention to:
+     - Public default values that become real secrets if omitted in production (e.g., `${VAR:-default-value}`);
+     - Missing startup validation that fails fast when required secrets or unsafe defaults are detected;
+     - Frontend build bundles and static assets containing leaked private secrets or improperly exposed variables.
+
+5. **UNTRUSTED INPUT / XSS (client-side and server-side injection):**
+   - **Frontend:** Inspect raw HTML insertion without sanitization, such as `innerHTML`, `dangerouslySetInnerHTML` (React), `v-html` (Vue), `[innerHTML]` (Angular), `bypassSecurityTrust*`, unsanitized Markdown rendering, user-controlled URLs in `href`/`src` (`javascript:` or `data:` vectors), and dangerous usage of `eval`/`new Function`.
+   - **Backend:** Trace user-controlled inputs rendered into HTML emails, PDF generators, SSR templates (Jinja, EJS, Blade, Thymeleaf), or HTTP responses without context-aware escaping.
+   - Verify whether the project includes a trusted sanitization library and confirm it is actually invoked at every sink.
 
 Add adjacent categories only when stack evidence triggers them: SQL/command
 injection, SSRF, path traversal/uploads, CSRF/cookies, authentication abuse,
@@ -78,8 +87,9 @@ or concurrency flaws.
 ## Phase 3 — Evidence and coverage rules
 
 - A finding needs exact repository-relative path and line range, a minimal code
-  snippet, attacker preconditions, exploit path, impact, severity, confidence,
-  remediation, and testable acceptance criteria.
+  snippet, attacker preconditions (e.g., active feature flags, unsafe configurations,
+  or required roles), exploit path, impact, severity, confidence, remediation,
+  and testable acceptance criteria.
 - Never report suspicion as a finding. Record missing proof as a limitation or a
   follow-up question.
 - Record verified strengths with the same exact evidence discipline.
@@ -150,8 +160,9 @@ credential. Apply the *verification-before-completion* principle from
 [Superpowers](https://github.com/obra/superpowers): empirical evidence before any
 claim of completion.
 
-In the final response, list finding counts by severity, each verified finding by
-file and line, strengths, coverage and exclusions, limitations, and every
-generated path. If there are no findings, say: “No verified findings were
-identified in the reviewed scope under the stated methodology and limitations.”
-Never claim that the repository is secure or certified.
+In the final chat response, provide:
+1. Executive summary with counts by severity and all generated file paths.
+2. Every verified finding detailed **file by file, line by line**, with code snippets, impact, preconditions/exploitability, and remediation.
+3. Verified strengths (positive security controls with code evidence).
+4. Inspected surfaces, coverage status (`exhaustive`, `sampled`, `limited`), exclusions, and declared limitations.
+If there are no findings, say: “No verified findings were identified in the reviewed scope under the stated methodology and limitations.” Never claim that the repository is secure or certified.

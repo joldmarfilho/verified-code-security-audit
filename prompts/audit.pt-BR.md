@@ -49,25 +49,34 @@ Antes de avaliar vulnerabilidades:
 
 ## Fase 2 — Cinco categorias centrais obrigatórias
 
-Adapte cada categoria à stack detectada:
+Detecte primeiro qual é o mecanismo da stack e adapte cada categoria com exemplos reais:
 
-1. **Isolamento por tenant ou proprietário:** identifique o mecanismo real de
-   isolamento e rastreie toda listagem, consulta, agregação, relatório, exportação,
-   atualização e exclusão até a operação final de dados. Confirme que o escopo
-   vem da identidade autenticada.
-2. **Paridade da autorização no servidor:** mapeie cada gate de papel ou
-   capacidade do frontend para seu endpoint, RPC ou job. Confirme enforcement
-   independente no backend para toda operação privilegiada.
-3. **IDOR/autorização por objeto:** enumere todos os handlers backend que recebem
-   IDs em path, query, body, header, evento ou payload de job. Revise todos; não
-   chame amostragem de revisão exaustiva.
-4. **Segredos e valores padrão inseguros:** revise código, configuração, deploy,
-   CI, scripts, documentação, entradas do build frontend e histórico Git
-   disponível. Inclua credenciais, material de assinatura, chaves privadas,
-   fallbacks e ausência de rejeição no startup.
-5. **Entrada não confiável/XSS:** rastreie conteúdo controlado pela pessoa usuária
-   até HTML/Markdown bruto, templates, e-mail, URLs, sinks do DOM, código dinâmico
-   e HTML gerado no backend. Confirme escape ou sanitização apropriados no sink.
+1. **BANCO SEM TRANCA (isolamento de inquilino/dono):**
+   - Identifique primeiro QUAL é o mecanismo de isolamento do projeto (ex: RLS no Supabase/Postgres, middleware de tenant em Node/FastAPI/Rails, filtro manual por `user_id`/`tenant_id`/`workspace_id` no ORM ou query builder).
+   - Rastreie toda listagem, consulta, busca, agregação, relatório, exportação, atualização e exclusão até a operação final no banco.
+   - Em Supabase/PostgreSQL, aponte tabelas com RLS ausente ou políticas `USING`/`WITH CHECK` mal configuradas. Em APIs próprias, aponte queries ou endpoints que não filtram pelo usuário autenticado ou pela organização a qual ele pertence. Confirme que o escopo vem estritamente da identidade autenticada no token/sessão, nunca de parâmetros livres enviados pelo cliente.
+
+2. **PERMISSÃO DEFINIDA NO NAVEGADOR (paridade de autorização):**
+   - Identifique operações privilegiadas (admin, configurações, gestão de membros, ações de escrita, exclusão ou faturamento).
+   - Mapeie cada gate de papel ou capacidade do frontend (`isAdmin`, `canEdit`, `role === 'admin'`, checagens de permissão em React/Vue/Angular/Svelte ou botões ocultos).
+   - Cruze cada gate da interface com o endpoint, RPC ou job correspondente e confirme se o backend valida o privilégio de forma independente em toda rota sensível. Uma interface que esconde um botão não é autorização.
+
+3. **IDOR (autorização por objeto):**
+   - Enumere e percorra sistematicamente TODOS os handlers de rota do backend (REST, GraphQL, tRPC, RPC) que recebem identificadores de objeto em path, query, body, header ou payload de job.
+   - Não use amostragem informal: valide se a busca, alteração ou deleção por ID verifica se o objeto pertence ao usuário/tenant do chamador antes de efetuar a operação.
+
+4. **CHAVES EXPOSTAS E DEFAULTS INSEGUROS (hardcode & configuração):**
+   - Revise código, arquivos de configuração, `docker-compose`, Helm charts, CI/CD, scripts, documentação, variáveis de ambiente e histórico Git disponível.
+   - Inclua API keys, tokens, senhas, chaves privadas, segredos de assinatura (JWT, webhooks) e credenciais padrão embutidas.
+   - Atenção especial a:
+     - Defaults públicos que viram segredo real se não forem sobrescritos em produção (ex: `${VAR:-valor-default}`);
+     - Ausência de validação no startup que rejeite valores padrão inseguros;
+     - Bundles e arquivos estáticos do frontend com chaves sensíveis embutidas (ex: variáveis privadas expostas sem prefixo público ou chaves secretas no código do cliente).
+
+5. **INPUTS SEM TRATAMENTO / XSS (injeção no cliente e servidor):**
+   - **No frontend:** procure inserções diretas de HTML sem sanitização, como `innerHTML`, `dangerouslySetInnerHTML` (React), `v-html` (Vue), `[innerHTML]` (Angular), `bypassSecurityTrust*`, renderização de Markdown sem sanitização (DOMPurify), URLs controladas pelo usuário em `href`/`src` (vetores `javascript:` ou `data:`), e uso perigoso de `eval`/`new Function`.
+   - **No backend:** rastreie entrada de usuário inserida em HTML de e-mails, geradores de PDF, templates SSR (Jinja, EJS, Blade, Thymeleaf) ou respostas HTTP sem escape apropriado no contexto de saída.
+   - Verifique se o projeto possui biblioteca de sanitização confiável e confirme se ela é efetivamente aplicada em cada sink.
 
 Acrescente categorias adjacentes somente quando a stack apresentar a superfície:
 injeção SQL/comandos, SSRF, path traversal/uploads, CSRF/cookies, abuso de
@@ -77,8 +86,9 @@ logs sensíveis ou falhas de concorrência.
 ## Fase 3 — Regras de evidência e coverage
 
 - Um achado precisa de caminho relativo ao repositório e linhas exatas, trecho
-  mínimo de código, pré-condições, caminho de exploração, impacto, severidade,
-  confiança, correção e critérios de aceite verificáveis.
+  mínimo de código, pré-condições (ex: feature flags ativas, configurações específicas
+  ou papéis necessários), caminho de exploração, impacto, severidade, confiança,
+  correção e critérios de aceite verificáveis.
 - Nunca transforme suspeita em finding. Registre prova ausente como limitação ou
   pergunta de acompanhamento.
 - Registre strengths verificados com a mesma disciplina de evidência exata.
@@ -151,8 +161,9 @@ corretamente e não contém credencial bruta. Aplique o princípio de
 *verification-before-completion* do [Superpowers](https://github.com/obra/superpowers):
 evidência empírica antes de qualquer asserção de conclusão.
 
-Na resposta final, informe contagens por severidade, cada finding verificado por
-arquivo e linha, strengths, coverage e exclusões, limitações e todos os caminhos
-gerados. Se não houver findings, diga: “Nenhum achado verificado foi identificado
-no escopo revisado, considerando a metodologia e as limitações declaradas.” Nunca
-afirme que o repositório está seguro ou certificado.
+Na resposta final no chat, informe:
+1. Resumo executivo com contagens por severidade e lista de caminhos gerados.
+2. Cada finding verificado detalhado **arquivo por arquivo, linha por linha**, com trecho de código, impacto, pré-condições/explorabilidade e correção recomendada.
+3. Strengths verificados (pontos fortes com prova no código).
+4. Superfícies auditadas, cobertura (`exhaustive`, `sampled`, `limited`), exclusões e limitações declaradas.
+Se não houver findings, diga: “Nenhum achado verificado foi identificado no escopo revisado, considerando a metodologia e as limitações declaradas.” Nunca afirme que o repositório está seguro ou certificado.
