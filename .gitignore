@@ -42,5 +42,6 @@ Thumbs.db
 tmp/
 *.log
 
-# Documentation & generated audit artifacts
-docs/
+# Documentation & generated audit artifacts (preserve images for README)
+docs/*
+!docs/images/
