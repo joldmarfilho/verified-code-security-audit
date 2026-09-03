@@ -24,6 +24,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import (
     Flowable,
+    HRFlowable,
     Image,
     CondPageBreak,
     KeepTogether,
@@ -86,6 +87,10 @@ def _paragraph(text: object, style: ParagraphStyle) -> Paragraph:
     return Paragraph(_safe_markup(text), style)
 
 
+def _markup_paragraph(markup: str, style: ParagraphStyle) -> Paragraph:
+    return Paragraph(markup, style)
+
+
 def _save_chart(fig: object) -> BytesIO:
     image = BytesIO()
     try:
@@ -99,12 +104,20 @@ def _save_chart(fig: object) -> BytesIO:
 def severity_chart(
     report: Mapping[str, object], strings: Mapping[str, str]
 ) -> BytesIO:
-    """Render a severity distribution, including a safe zero-data state."""
+    """Render a modern severity distribution donut chart."""
 
     findings = report["findings"]
     counts = Counter(str(item["severity"]) for item in findings)  # type: ignore[index]
-    fig, axis = plt.subplots(figsize=(6.4, 3.4))
-    axis.set_title(strings["chart.findings_by_severity"], fontweight="bold")
+    fig, axis = plt.subplots(figsize=(5.2, 2.8), dpi=160)
+    fig.patch.set_facecolor("#FFFFFF")
+    axis.set_facecolor("#FFFFFF")
+    axis.set_title(
+        strings["chart.findings_by_severity"],
+        fontweight="bold",
+        fontsize=9.5,
+        color="#0F172A",
+        pad=8,
+    )
     if not counts:
         axis.text(
             0.5,
@@ -112,35 +125,64 @@ def severity_chart(
             f"0\n{strings['chart.no_findings']}",
             ha="center",
             va="center",
-            fontsize=15,
+            fontsize=12,
+            color="#64748B",
+            fontweight="bold",
         )
         axis.set_axis_off()
         return _save_chart(fig)
 
     labels = [severity for severity in _SEVERITY_ORDER if counts[severity]]
     values = [counts[label] for label in labels]
-    axis.pie(
+    total = sum(values)
+
+    wedges, texts, autotexts = axis.pie(
         values,
         labels=[strings[f"severity.{label}"] for label in labels],
         colors=[_SEVERITY_COLORS[label] for label in labels],
-        autopct=lambda value: f"{value:.0f}%",
+        autopct=lambda value: f"{value:.0f}%" if value >= 10 else "",
+        pctdistance=0.74,
         startangle=90,
-        wedgeprops={"width": 0.38, "edgecolor": "white"},
+        wedgeprops={"width": 0.38, "edgecolor": "#FFFFFF", "linewidth": 2.0},
+        textprops={"fontsize": 7.5, "color": "#1E293B"},
     )
-    axis.text(0, 0, str(sum(values)), ha="center", va="center", fontsize=18, fontweight="bold")
+    for autotext in autotexts:
+        autotext.set_color("#FFFFFF")
+        autotext.set_fontsize(7.5)
+        autotext.set_fontweight("bold")
+
+    axis.text(
+        0,
+        0,
+        f"{total}",
+        ha="center",
+        va="center",
+        fontsize=16,
+        fontweight="bold",
+        color="#0F172A",
+    )
     axis.axis("equal")
+    fig.tight_layout()
     return _save_chart(fig)
 
 
 def category_chart(
     report: Mapping[str, object], strings: Mapping[str, str]
 ) -> BytesIO:
-    """Render the finding count by category, including a zero-data state."""
+    """Render the finding count by category with modern borderless styling."""
 
     findings = report["findings"]
     counts = Counter(str(item["category_id"]) for item in findings)  # type: ignore[index]
-    fig, axis = plt.subplots(figsize=(6.4, 3.4))
-    axis.set_title(strings["chart.findings_by_category"], fontweight="bold")
+    fig, axis = plt.subplots(figsize=(5.2, 2.8), dpi=160)
+    fig.patch.set_facecolor("#FFFFFF")
+    axis.set_facecolor("#FFFFFF")
+    axis.set_title(
+        strings["chart.findings_by_category"],
+        fontweight="bold",
+        fontsize=9.5,
+        color="#0F172A",
+        pad=8,
+    )
     if not counts:
         axis.text(
             0.5,
@@ -148,7 +190,9 @@ def category_chart(
             f"0\n{strings['chart.no_findings']}",
             ha="center",
             va="center",
-            fontsize=15,
+            fontsize=12,
+            color="#64748B",
+            fontweight="bold",
         )
         axis.set_axis_off()
         return _save_chart(fig)
@@ -167,13 +211,23 @@ def category_chart(
             worst[category_id] = severity
 
     category_ids = list(counts)
-    labels = [fill(category_names.get(value, value), width=30) for value in category_ids]
+    labels = [fill(category_names.get(value, value), width=24) for value in category_ids]
     values = [counts[value] for value in category_ids]
     colors_by_category = [_SEVERITY_COLORS[worst[value]] for value in category_ids]
-    axis.barh(labels, values, color=colors_by_category)
-    axis.set_xlabel(strings["summary.total_findings"])
+
+    bars = axis.barh(labels, values, color=colors_by_category, height=0.52, zorder=3)
+    axis.bar_label(bars, padding=4, fontsize=7.5, color="#0F172A", fontweight="bold")
+    axis.set_xlabel(strings["summary.total_findings"], fontsize=7.5, color="#64748B")
     axis.invert_yaxis()
     axis.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+    axis.tick_params(axis="y", labelsize=7.5, colors="#1E293B", left=False)
+    axis.tick_params(axis="x", labelsize=7.5, colors="#64748B", bottom=False)
+    axis.spines["top"].set_visible(False)
+    axis.spines["right"].set_visible(False)
+    axis.spines["left"].set_visible(False)
+    axis.spines["bottom"].set_color("#E2E8F0")
+    axis.spines["bottom"].set_linewidth(0.8)
+    axis.grid(axis="x", color="#F1F5F9", linestyle="-", linewidth=1, zorder=0)
     fig.tight_layout()
     return _save_chart(fig)
 
@@ -205,7 +259,7 @@ def _styles() -> dict[str, ParagraphStyle]:
             leading=29,
             textColor=colors.HexColor("#0F172A"),
             alignment=TA_CENTER,
-            spaceAfter=14,
+            spaceAfter=8,
         ),
         "subtitle": ParagraphStyle(
             "VCSASubtitle",
@@ -213,7 +267,7 @@ def _styles() -> dict[str, ParagraphStyle]:
             fontName=_FONT_REGULAR,
             fontSize=11,
             leading=16,
-            textColor=colors.HexColor("#475569"),
+            textColor=colors.HexColor("#64748B"),
             alignment=TA_CENTER,
             spaceAfter=14,
         ),
@@ -221,20 +275,20 @@ def _styles() -> dict[str, ParagraphStyle]:
             "VCSAHeading",
             parent=base["Heading2"],
             fontName=_FONT_BOLD,
-            fontSize=15,
-            leading=19,
-            textColor=colors.HexColor("#0F4C81"),
-            spaceBefore=13,
-            spaceAfter=7,
+            fontSize=14,
+            leading=18,
+            textColor=colors.HexColor("#0F172A"),
+            spaceBefore=12,
+            spaceAfter=6,
         ),
         "body": ParagraphStyle(
             "VCSABody",
             parent=base["BodyText"],
             fontName=_FONT_REGULAR,
-            fontSize=9.5,
-            leading=14,
+            fontSize=9.0,
+            leading=13.5,
             textColor=colors.HexColor("#1E293B"),
-            spaceAfter=7,
+            spaceAfter=6,
         ),
         "small": ParagraphStyle(
             "VCSASmall",
@@ -243,7 +297,7 @@ def _styles() -> dict[str, ParagraphStyle]:
             fontSize=8,
             leading=11,
             textColor=colors.HexColor("#64748B"),
-            spaceAfter=5,
+            spaceAfter=4,
         ),
         "finding_title": ParagraphStyle(
             "VCSAFindingTitle",
@@ -252,31 +306,32 @@ def _styles() -> dict[str, ParagraphStyle]:
             fontSize=11,
             leading=15,
             textColor=colors.HexColor("#0F172A"),
-            spaceBefore=8,
-            spaceAfter=5,
+            spaceBefore=7,
+            spaceAfter=4,
         ),
         "evidence_location": ParagraphStyle(
             "VCSAEvidenceLocation",
             parent=base["BodyText"],
             fontName=_FONT_BOLD,
-            fontSize=8,
+            fontSize=7.8,
             leading=10,
-            textColor=colors.HexColor("#334155"),
-            spaceBefore=5,
-            spaceAfter=3,
+            textColor=colors.HexColor("#475569"),
+            spaceBefore=8,
+            spaceAfter=11,
         ),
         "code": ParagraphStyle(
             "VCSACode",
             parent=base["Code"],
             fontName=_FONT_MONO,
-            fontSize=7.2,
-            leading=9.2,
+            fontSize=7.0,
+            leading=9.0,
             textColor=colors.HexColor("#0F172A"),
-            backColor=colors.HexColor("#F1F5F9"),
-            borderColor=colors.HexColor("#CBD5E1"),
+            backColor=colors.HexColor("#F8FAFC"),
+            borderColor=colors.HexColor("#E2E8F0"),
             borderWidth=0.5,
             borderPadding=6,
-            spaceAfter=6,
+            spaceBefore=4,
+            spaceAfter=8,
         ),
         "appendix": ParagraphStyle(
             "VCSAAppendix",
@@ -303,20 +358,33 @@ def _styles() -> dict[str, ParagraphStyle]:
             leading=9.5,
             textColor=colors.HexColor("#1E293B"),
         ),
+        "kpi_cell": ParagraphStyle(
+            "VCSAKpiCell",
+            parent=base["Normal"],
+            fontName=_FONT_REGULAR,
+            fontSize=7.5,
+            leading=11,
+            textColor=colors.HexColor("#1E293B"),
+            alignment=TA_CENTER,
+        ),
     }
 
 
 def _page_decorations(canvas: object, doc: SimpleDocTemplate, strings: Mapping[str, str]) -> None:
+    if doc.page == 1:
+        return
     canvas.saveState()
-    canvas.setStrokeColor(colors.HexColor("#CBD5E1"))
-    canvas.setLineWidth(0.5)
+    canvas.setStrokeColor(colors.HexColor("#E2E8F0"))
+    canvas.setLineWidth(0.6)
     canvas.line(2 * cm, A4[1] - 1.25 * cm, A4[0] - 2 * cm, A4[1] - 1.25 * cm)
     canvas.setFont(_FONT_REGULAR, 7.5)
     canvas.setFillColor(colors.HexColor("#64748B"))
     canvas.drawString(2 * cm, A4[1] - 1.05 * cm, strings["report.title"])
+    canvas.line(2 * cm, 1.25 * cm, A4[0] - 2 * cm, 1.25 * cm)
+    canvas.drawString(2 * cm, 0.95 * cm, "Verified Code Security Audit")
     canvas.drawRightString(
         A4[0] - 2 * cm,
-        1.05 * cm,
+        0.95 * cm,
         f"{strings['footer.page']} {doc.page}",
     )
     canvas.restoreState()
@@ -335,14 +403,14 @@ def _section(
 def _table_style() -> TableStyle:
     return TableStyle(
         [
-            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#0F4C81")),
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#0F172A")),
             ("VALIGN", (0, 0), (-1, -1), "TOP"),
-            ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#CBD5E1")),
+            ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#E2E8F0")),
             ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F8FAFC")]),
             ("LEFTPADDING", (0, 0), (-1, -1), 6),
             ("RIGHTPADDING", (0, 0), (-1, -1), 6),
-            ("TOPPADDING", (0, 0), (-1, -1), 5),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+            ("TOPPADDING", (0, 0), (-1, -1), 4),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
         ]
     )
 
@@ -374,17 +442,19 @@ def _severity_chip(
 ) -> Table:
     chip = Table(
         [[_paragraph(strings[f"severity.{severity}"], styles["table_header"])]],
-        colWidths=[3.2 * cm],
+        colWidths=[2.8 * cm],
+        hAlign="LEFT",
     )
     chip.setStyle(
         TableStyle(
             [
                 ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor(_SEVERITY_COLORS[severity])),
                 ("BOX", (0, 0), (-1, -1), 0, colors.transparent),
-                ("LEFTPADDING", (0, 0), (-1, -1), 7),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 7),
-                ("TOPPADDING", (0, 0), (-1, -1), 3),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 6),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+                ("TOPPADDING", (0, 0), (-1, -1), 2.5),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 2.5),
             ]
         )
     )
@@ -398,7 +468,7 @@ def _finding_card(
 ) -> KeepTogether:
     severity = str(finding["severity"])
     confidence = str(finding["confidence"])
-    preconditions = "\n".join(f"- {value}" for value in finding["preconditions"])
+    preconditions = "\n".join(f"- {value}" for value in finding["preconditions"]) or "—"
     acceptance = "\n".join(
         f"- {value}" for value in finding["acceptance_criteria"]
     )
@@ -443,7 +513,13 @@ def _finding_card(
                 f"{strings['label.references']}: {references}",
                 styles["small"],
             ),
-            Spacer(1, 0.25 * cm),
+            HRFlowable(
+                width="100%",
+                thickness=0.5,
+                color=colors.HexColor("#E2E8F0"),
+                spaceBefore=6,
+                spaceAfter=12,
+            ),
         ]
     )
     return KeepTogether(blocks)
@@ -508,28 +584,73 @@ def render_pdf(
         for severity in _SEVERITY_ORDER
     )
 
+    kpi_cols: list[Flowable] = []
+    for sev in _SEVERITY_ORDER:
+        count = severity_counts[sev]
+        kpi_cols.append(
+            _markup_paragraph(
+                f"<font size=12><b>{count}</b></font><br/>{strings[f'severity.{sev}']}",
+                styles["kpi_cell"],
+            )
+        )
+    kpi_table = Table([kpi_cols], colWidths=[3.4 * cm] * 5, hAlign="LEFT")
+    kpi_style: list[tuple[object, ...]] = [
+        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#F8FAFC")),
+        ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#E2E8F0")),
+        ("INNERGRID", (0, 0), (-1, -1), 0.3, colors.HexColor("#F1F5F9")),
+        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("TOPPADDING", (0, 0), (-1, -1), 6),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+    ]
+    for idx, sev in enumerate(_SEVERITY_ORDER):
+        kpi_style.append(
+            ("LINEABOVE", (idx, 0), (idx, 0), 2.5, colors.HexColor(_SEVERITY_COLORS[sev]))
+        )
+    kpi_table.setStyle(TableStyle(kpi_style))
+
+    meta_table = Table(
+        [
+            [
+                _paragraph(f"{strings['label.project']}: {metadata['project_name']}", styles["finding_title"]),
+                _paragraph(f"{strings['label.audit_date']}: {metadata['audited_at']}", styles["body"]),
+            ],
+            [
+                _paragraph(f"{metadata['repository']}", styles["small"]),
+                _paragraph(f"{strings['label.revision']}: {metadata['revision']}", styles["small"]),
+            ],
+        ],
+        colWidths=[8.5 * cm, 8.5 * cm],
+        hAlign="LEFT",
+    )
+    meta_table.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#F8FAFC")),
+                ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#E2E8F0")),
+                ("INNERGRID", (0, 0), (-1, -1), 0.3, colors.HexColor("#F1F5F9")),
+                ("TOPPADDING", (0, 0), (-1, -1), 8),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+                ("LEFTPADDING", (0, 0), (-1, -1), 10),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+            ]
+        )
+    )
+
     story: list[Flowable] = [
-        Spacer(1, 3.2 * cm),
+        Spacer(1, 2.5 * cm),
         _paragraph(strings["report.title"], styles["title"]),
         _paragraph(strings["report.subtitle"], styles["subtitle"]),
         Spacer(1, 0.8 * cm),
-        _paragraph(
-            f"{strings['label.project']}: {metadata['project_name']}",
-            styles["title"],
-        ),
-        _paragraph(
-            f"{metadata['repository']}\n"
-            f"{strings['label.revision']}: {metadata['revision']}\n"
-            f"{strings['label.audit_date']}: {metadata['audited_at']}",
-            styles["small"],
-        ),
+        meta_table,
         Spacer(1, 0.6 * cm),
         _paragraph(
             f"{strings['label.scope']}: {scope['summary']}",
             styles["body"],
         ),
-        _paragraph(severity_summary, styles["body"]),
-        Spacer(1, 1.0 * cm),
+        Spacer(1, 0.5 * cm),
+        kpi_table,
+        Spacer(1, 2.5 * cm),
         _paragraph(strings["disclaimer"], styles["small"]),
         PageBreak(),
     ]
@@ -546,17 +667,17 @@ def render_pdf(
     category_image = category_chart(report, strings)
     chart_table = Table(
         [[
-            Image(severity_image, width=7.7 * cm, height=4.2 * cm),
-            Image(category_image, width=7.7 * cm, height=4.2 * cm),
+            Image(severity_image, width=8.2 * cm, height=4.4 * cm),
+            Image(category_image, width=8.2 * cm, height=4.4 * cm),
         ]],
-        colWidths=[8.1 * cm, 8.1 * cm],
+        colWidths=[8.5 * cm, 8.5 * cm],
     )
     chart_table.setStyle(
         TableStyle(
             [
                 ("VALIGN", (0, 0), (-1, -1), "TOP"),
                 ("LEFTPADDING", (0, 0), (-1, -1), 0),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 2),
             ]
         )
     )

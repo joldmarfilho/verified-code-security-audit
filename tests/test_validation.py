@@ -78,6 +78,27 @@ class ValidationTests(unittest.TestCase):
         with self.assertRaisesRegex(AuditValidationError, "redact"):
             validate_report(report)
 
+    def test_rejects_modern_secret_shapes(self) -> None:
+        tokens = [
+            "github_" + "pat_11ABCDE1234567890abcdefghijklmnopqrstuvwxyz1234567890abcdefghijklmnopqr",
+            "sk-" + "proj-1234567890abcdefghijklmnopqrstuvwxyz1234567890",
+            "sk-" + "ant-api03-abcdefghijklmnopqrstuvwxyz1234567890",
+            "xo" + "xb-123456789012-1234567890123-abcdefghijklmnopqrstuvwx",
+            "gl" + "pat-abcdefghijklmnopqrst",
+        ]
+        for token in tokens:
+            with self.subTest(token=token[:15]):
+                report = valid_report()
+                report["findings"][0]["evidence"][0]["snippet"] = f"secret = '{token}'"
+                with self.assertRaisesRegex(AuditValidationError, "redact"):
+                    validate_report(report)
+
+    def test_rejects_non_relative_path_in_included_paths_with_friendly_message(self) -> None:
+        report = valid_report()
+        report["scope"]["included_paths"] = ["/etc/passwd"]
+        with self.assertRaisesRegex(AuditValidationError, "path must be repository-relative"):
+            validate_report(report)
+
     def test_rejects_raw_secret_outside_evidence_snippets(self) -> None:
         for section, mutate in (
             ("description", lambda report: report["findings"][0].__setitem__(

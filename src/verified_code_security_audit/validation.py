@@ -21,8 +21,10 @@ class AuditValidationError(ValueError):
 _RAW_SECRET_PATTERNS = (
     re.compile(r"-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----"),
     re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
-    re.compile(r"\bgh[pousr]_[A-Za-z0-9]{20,}\b"),
-    re.compile(r"\bsk-[A-Za-z0-9]{20,}\b"),
+    re.compile(r"\b(?:gh[pousr]_|github_pat_)[A-Za-z0-9_]{20,}\b"),
+    re.compile(r"\bsk-[A-Za-z0-9_-]{20,}\b"),
+    re.compile(r"\bxox[baprs]-[0-9A-Za-z-]{10,}\b"),
+    re.compile(r"\bglpat-[0-9a-zA-Z_-]{20,}\b"),
 )
 
 
@@ -65,7 +67,11 @@ def _schema_errors(report: Mapping[str, Any]) -> list[str]:
     errors: list[str] = []
     for error in sorted(validator.iter_errors(report), key=lambda item: list(item.absolute_path)):
         location = _json_path(error.absolute_path)
-        if error.validator == "pattern" and list(error.absolute_path)[-1:] == ["path"]:
+        is_path_field = list(error.absolute_path)[-1:] == ["path"] or (
+            len(error.absolute_path) >= 2
+            and error.absolute_path[-2] in ("included_paths", "affected_paths")
+        )
+        if error.validator == "pattern" and is_path_field:
             errors.append(f"{location}: path must be repository-relative and use forward slashes")
         else:
             errors.append(f"{location}: {error.message}")

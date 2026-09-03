@@ -25,6 +25,12 @@ class CliTests(unittest.TestCase):
         )
         return path
 
+    def test_version_prints_prog_and_version(self) -> None:
+        code, stdout, stderr = self._run(["--version"])
+        self.assertEqual(code, 0)
+        self.assertIn("vcsa 0.1.0", stdout)
+        self.assertEqual(stderr, "")
+
     def test_validate_returns_zero_for_valid_report(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = self._write_report(Path(directory))
@@ -32,6 +38,21 @@ class CliTests(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertIn(f"valid: {path}", stdout)
         self.assertEqual(stderr, "")
+
+    def test_validate_with_matching_locale_succeeds(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = self._write_report(Path(directory), "pt-BR")
+            code, stdout, stderr = self._run(["validate", str(path), "--locale", "pt-BR"])
+        self.assertEqual(code, 0)
+        self.assertIn(f"valid: {path}", stdout)
+        self.assertEqual(stderr, "")
+
+    def test_validate_with_mismatched_locale_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = self._write_report(Path(directory), "pt-BR")
+            code, _, stderr = self._run(["validate", str(path), "--locale", "en"])
+        self.assertEqual(code, 2)
+        self.assertIn("content_locale", stderr)
 
     def test_validate_returns_two_for_invalid_json(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

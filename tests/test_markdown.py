@@ -51,5 +51,12 @@ class MarkdownTests(unittest.TestCase):
         self.assertIn("````text\n```\nsynthetic\n```\n````", text)
 
 
+    def test_empty_preconditions_omits_parentheses(self) -> None:
+        report = valid_report()
+        report["findings"][0]["preconditions"] = []
+        text = render_issues(report, load_locale("en"))
+        self.assertNotIn(" ()", text)
+
+
 if __name__ == "__main__":
     unittest.main()

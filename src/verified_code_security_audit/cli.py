@@ -9,6 +9,7 @@ import tempfile
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 
+from verified_code_security_audit import __version__
 from verified_code_security_audit.localization import SUPPORTED_LOCALES, load_locale
 from verified_code_security_audit.markdown import render_issues
 from verified_code_security_audit.pdf import render_pdf
@@ -24,10 +25,17 @@ def _parser() -> argparse.ArgumentParser:
         prog="vcsa",
         description="Validate and render evidence-backed security audit reports.",
     )
+    parser.add_argument(
+        "-V",
+        "--version",
+        action="version",
+        version=f"%(prog)s {__version__}",
+    )
     subcommands = parser.add_subparsers(dest="command", required=True)
 
     validate = subcommands.add_parser("validate", help="validate an audit JSON file")
     validate.add_argument("input", type=Path, metavar="INPUT")
+    validate.add_argument("--locale", choices=SUPPORTED_LOCALES)
 
     render = subcommands.add_parser("render", help="render PDF and Markdown outputs")
     render.add_argument("input", type=Path, metavar="INPUT")
@@ -99,12 +107,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         arguments = _parser().parse_args(argv)
     except SystemExit as exc:
-        return int(exc.code or 0)
+        return exc.code if isinstance(exc.code, int) else (0 if exc.code is None else 1)
 
     try:
         report = load_report(arguments.input)
         validate_report(report)
         if arguments.command == "validate":
+            if arguments.locale:
+                validate_report(report, expected_locale=arguments.locale)
             print(f"valid: {arguments.input}")
             return 0
 
@@ -137,3 +147,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 def entrypoint() -> None:
     raise SystemExit(main())
+
+
+if __name__ == "__main__":
+    entrypoint()

@@ -149,7 +149,7 @@ python /path/to/skill-creator/scripts/quick_validate.py .
 ```
 
 The final command is available when Codex's bundled `skill-creator` is installed.
-CI tests Python 3.10, 3.11, and 3.12 and renders both synthetic locales.
+CI tests Python 3.10, 3.11, 3.12, and 3.13 and renders both synthetic locales.
 
 ## Reporting a security issue
 

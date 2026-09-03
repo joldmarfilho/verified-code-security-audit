@@ -72,8 +72,12 @@ def render_issues(
             for item in group
         )
         exploitability = "\n".join(
-            f"- **{item['id']}**: {item['exploit_path']} "
-            f"({' '.join(str(value) for value in item['preconditions'])})"
+            f"- **{item['id']}**: {item['exploit_path']}"
+            + (
+                f" ({' '.join(str(value) for value in item['preconditions'])})"
+                if item.get("preconditions")
+                else ""
+            )
             for item in group
         )
 
