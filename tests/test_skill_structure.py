@@ -65,6 +65,54 @@ class SkillStructureTests(unittest.TestCase):
             for phrase in required:
                 self.assertIn(phrase, text, f"{filename}: {phrase}")
 
+    def test_readmes_document_the_complete_public_workflow(self) -> None:
+        cases = {
+            "README.md": {
+                "language": "virtual environment",
+                "limitations": "limitations",
+                "counterpart": "](README.pt-BR.md)",
+                "image": "docs/images/report-en.png",
+            },
+            "README.pt-BR.md": {
+                "language": "ambiente virtual",
+                "limitations": "limitações",
+                "counterpart": "](README.md)",
+                "image": "docs/images/report-pt-BR.png",
+            },
+        }
+        common = (
+            "$verified-code-security-audit",
+            "vcsa validate",
+            "vcsa render",
+            "pt-BR",
+            "security-audit-report.",
+            "github-issues.",
+            "MIT",
+        )
+        for filename, expected in cases.items():
+            text = (ROOT / filename).read_text(encoding="utf-8")
+            for phrase in common:
+                self.assertIn(phrase, text, f"{filename}: {phrase}")
+            self.assertIn(expected["language"], text.lower())
+            self.assertIn(expected["limitations"], text.lower())
+            self.assertIn(expected["counterpart"], text)
+            self.assertNotRegex(text, r"[A-Za-z]:[/\\]Users")
+            self.assertIn(f"]({expected['image']})", text)
+            self.assertTrue((ROOT / expected["image"]).is_file())
+            self.assertRegex(
+                text,
+                r"\]\(examples/synthetic/audit-report\.(?:en|pt-BR)\.json\)",
+            )
+
+    def test_public_markdown_has_no_workstation_paths(self) -> None:
+        for path in ROOT.rglob("*.md"):
+            text = path.read_text(encoding="utf-8")
+            self.assertNotRegex(
+                text,
+                r"[A-Za-z]:[/\\]Users",
+                str(path.relative_to(ROOT)),
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

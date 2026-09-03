@@ -967,7 +967,7 @@ Run:
 
 ```bash
 python -m unittest tests.test_skill_structure -v
-python C:/Users/joldm/.codex/skills/.system/skill-creator/scripts/quick_validate.py .
+python /path/to/skill-creator/scripts/quick_validate.py .
 ```
 
 Expected: all tests and the bundled skill validator pass.
@@ -1051,7 +1051,7 @@ Copy one representative executive-summary PNG per locale to `docs/images/report-
 
 ```bash
 python -m unittest discover -s tests -v
-python C:/Users/joldm/.codex/skills/.system/skill-creator/scripts/quick_validate.py .
+python /path/to/skill-creator/scripts/quick_validate.py .
 vcsa validate examples/synthetic/audit-report.en.json
 vcsa validate examples/synthetic/audit-report.pt-BR.json
 git diff --check

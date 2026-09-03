@@ -6,7 +6,7 @@ from collections import Counter
 from collections.abc import Mapping, Sequence
 from io import BytesIO
 from pathlib import Path
-from textwrap import fill
+from textwrap import fill, wrap
 from xml.sax.saxutils import escape
 
 import matplotlib
@@ -25,6 +25,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import (
     Flowable,
     Image,
+    CondPageBreak,
     KeepTogether,
     PageBreak,
     Paragraph,
@@ -41,6 +42,7 @@ from verified_code_security_audit.markdown import render_issues
 _FONT_REGISTERED = False
 _FONT_REGULAR = "VCSA-DejaVu"
 _FONT_BOLD = "VCSA-DejaVu-Bold"
+_FONT_MONO = "VCSA-DejaVu-Mono"
 _SEVERITY_ORDER = ("critical", "high", "medium", "low", "informational")
 _SEVERITY_COLORS = {
     "critical": "#7F1D1D",
@@ -61,8 +63,10 @@ def _register_fonts() -> None:
         FontProperties(family="DejaVu Sans", weight="bold"),
         fallback_to_default=False,
     )
+    mono_path = findfont("DejaVu Sans Mono", fallback_to_default=False)
     pdfmetrics.registerFont(TTFont(_FONT_REGULAR, regular_path))
     pdfmetrics.registerFont(TTFont(_FONT_BOLD, bold_path))
+    pdfmetrics.registerFont(TTFont(_FONT_MONO, mono_path))
     pdfmetrics.registerFontFamily(
         "VCSA-DejaVu",
         normal=_FONT_REGULAR,
@@ -261,7 +265,7 @@ def _styles() -> dict[str, ParagraphStyle]:
         "code": ParagraphStyle(
             "VCSACode",
             parent=base["Code"],
-            fontName=_FONT_REGULAR,
+            fontName=_FONT_MONO,
             fontSize=7.2,
             leading=9.2,
             textColor=colors.HexColor("#0F172A"),
@@ -270,6 +274,15 @@ def _styles() -> dict[str, ParagraphStyle]:
             borderWidth=0.5,
             borderPadding=6,
             spaceAfter=6,
+        ),
+        "appendix": ParagraphStyle(
+            "VCSAAppendix",
+            parent=base["Code"],
+            fontName=_FONT_MONO,
+            fontSize=5.0,
+            leading=5.35,
+            textColor=colors.HexColor("#0F172A"),
+            spaceAfter=4,
         ),
         "table_header": ParagraphStyle(
             "VCSATableHeader",
@@ -431,6 +444,29 @@ def _finding_card(
         ]
     )
     return KeepTogether(blocks)
+
+
+def _wrap_preformatted(text: str, width: int = 132) -> str:
+    """Wrap long source lines without collapsing explicit Markdown newlines."""
+
+    output: list[str] = []
+    for line in text.splitlines():
+        if len(line) <= width:
+            output.append(line)
+            continue
+        indentation = line[: len(line) - len(line.lstrip())]
+        output.extend(
+            wrap(
+                line,
+                width=width,
+                subsequent_indent=f"{indentation}  ",
+                replace_whitespace=False,
+                drop_whitespace=True,
+                break_long_words=True,
+                break_on_hyphens=False,
+            )
+        )
+    return "\n".join(output)
 
 
 def render_pdf(
@@ -600,6 +636,8 @@ def render_pdf(
             )
         )
 
+    if findings:
+        story.append(CondPageBreak(8 * cm))
     story.append(_paragraph(strings["section.findings"], styles["heading"]))
     if not findings:
         story.append(_paragraph(strings["chart.no_findings"], styles["body"]))
@@ -674,21 +712,14 @@ def render_pdf(
         )
         story.extend(_evidence_blocks(category["evidence"], styles))
 
+    story.append(CondPageBreak(14 * cm))
     story.append(_paragraph(strings["section.github_issues"], styles["heading"]))
     issue_text = render_issues(report, strings)
     story.append(
         Preformatted(
-            escape(issue_text),
-            styles["code"],
-            maxLineLength=100,
-            splitChars=" /.-_",
+            escape(_wrap_preformatted(issue_text)),
+            styles["appendix"],
         )
-    )
-    story.extend(
-        [
-            Spacer(1, 0.5 * cm),
-            _paragraph(strings["disclaimer"], styles["small"]),
-        ]
     )
 
     decorate = lambda canvas, current_doc: _page_decorations(

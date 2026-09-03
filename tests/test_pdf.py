@@ -11,6 +11,9 @@ from verified_code_security_audit.pdf import (
     severity_chart,
     verify_pdf_structure,
 )
+from verified_code_security_audit.validation import load_report
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 class PdfTests(unittest.TestCase):
@@ -68,6 +71,37 @@ class PdfTests(unittest.TestCase):
         for key, value in strings.items():
             if key.startswith("section."):
                 self.assertIn(value, text)
+
+    def test_synthetic_report_avoids_orphan_heading_and_sparse_tail(self) -> None:
+        for locale in ("en", "pt-BR"):
+            with self.subTest(locale=locale):
+                report = load_report(
+                    ROOT
+                    / "examples"
+                    / "synthetic"
+                    / f"audit-report.{locale}.json"
+                )
+                strings = load_locale(locale)
+                with tempfile.TemporaryDirectory() as directory:
+                    path = Path(directory) / "report.pdf"
+                    render_pdf(report, strings, path)
+                    pages = [
+                        page.extract_text() or "" for page in PdfReader(path).pages
+                    ]
+
+                heading = strings["section.findings"]
+                heading_page = next(
+                    text for text in pages if heading in text.splitlines()
+                )
+                heading_lines = heading_page.splitlines()
+                after_heading = "\n".join(
+                    heading_lines[heading_lines.index(heading) + 1 :]
+                )
+                self.assertIn("F1", after_heading)
+                self.assertIn(
+                    strings["section.github_issues"], pages[-1].splitlines()
+                )
+                self.assertGreater(len(pages[-1]), 1200)
 
 
 if __name__ == "__main__":
