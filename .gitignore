@@ -1,10 +1,46 @@
+# Byte-compiled / optimized files
 __pycache__/
 *.py[cod]
-.venv/
+*$py.class
+
+# Distribution & build
 build/
 dist/
 *.egg-info/
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Environment variables & secrets
+.env
+.env.*
+!.env.example
+
+# Testing, coverage & caches
 .coverage
 htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# IDEs & editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
+# Logs & temporary files
 tmp/
-docs/security-audit/
+*.log
+
+# Documentation & generated audit artifacts
+docs/
