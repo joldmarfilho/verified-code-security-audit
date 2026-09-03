@@ -60,9 +60,14 @@ logs sensíveis ou falhas de concorrência.
 - Para cada categoria, use reviewed, limited, not-reviewed ou not-applicable e
   explique o resultado.
 - Para cada superfície, registre totais descobertos e revisados, método,
-  exclusões e coverage: exhaustive, sampled, limited ou not-applicable.
-- Nunca exponha uma credencial. Substitua seu valor por `[REDACTED]` no chat,
-  JSON, PDF, Markdown, logs e capturas de tela.
+  exclusões e coverage: exhaustive, sampled, limited ou not-applicable. Use
+  exhaustive apenas quando descobertos for conhecido e igual a revisados, e
+  not-applicable apenas quando revisados for zero; caso contrário use sampled ou
+  limited.
+- Nunca exponha uma credencial em nenhum campo. Substitua seu valor por
+  `[REDACTED]` no chat, JSON, PDF, Markdown, logs e capturas de tela. A validação
+  rejeita material secreto bruto em qualquer parte do registro, inclusive em
+  descrições e correções.
 - Preserve alterações da pessoa usuária. Não execute reset, clean, stash,
   reformatação ou sobrescrita do worktree auditado.
 
@@ -78,6 +83,13 @@ Defina `metadata.content_locale` como `pt-BR`. O JSON deve conter
 `schema_version`, `metadata`, `scope`, `stack`, `coverage`, `categories`,
 `findings`, `strengths`, `recommendations` e `limitations`. Use
 `schema/audit-report.schema.json` como fonte de verdade.
+
+A validação e a renderização usam o comando `vcsa`. Se ele não estiver
+disponível, instale o diretório da skill em um ambiente virtual antes:
+
+```text
+python -m pip install /caminho/para/verified-code-security-audit
+```
 
 Execute e corrija todos os erros até a validação passar:
 

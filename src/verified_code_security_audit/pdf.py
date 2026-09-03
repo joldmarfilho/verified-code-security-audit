@@ -44,6 +44,9 @@ _FONT_REGULAR = "VCSA-DejaVu"
 _FONT_BOLD = "VCSA-DejaVu-Bold"
 _FONT_MONO = "VCSA-DejaVu-Mono"
 _SEVERITY_ORDER = ("critical", "high", "medium", "low", "informational")
+# Characters that fit the printable width at each monospace size (A4 minus margins).
+_CODE_WRAP_WIDTH = 104
+_APPENDIX_WRAP_WIDTH = 132
 _SEVERITY_COLORS = {
     "critical": "#7F1D1D",
     "high": "#DC2626",
@@ -357,7 +360,7 @@ def _evidence_blocks(
         blocks.append(_paragraph(location, styles["evidence_location"]))
         blocks.append(
             XPreformatted(
-                escape(str(item["snippet"])),
+                escape(_wrap_preformatted(str(item["snippet"]), width=_CODE_WRAP_WIDTH)),
                 styles["code"],
             )
         )
@@ -446,7 +449,7 @@ def _finding_card(
     return KeepTogether(blocks)
 
 
-def _wrap_preformatted(text: str, width: int = 132) -> str:
+def _wrap_preformatted(text: str, width: int = _APPENDIX_WRAP_WIDTH) -> str:
     """Wrap long source lines without collapsing explicit Markdown newlines."""
 
     output: list[str] = []
@@ -465,6 +468,7 @@ def _wrap_preformatted(text: str, width: int = 132) -> str:
                 break_long_words=True,
                 break_on_hyphens=False,
             )
+            or [line]
         )
     return "\n".join(output)
 

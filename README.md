@@ -36,12 +36,21 @@ or its [pt-BR equivalent](examples/synthetic/audit-report.pt-BR.json).
 
 ## Install the Agent Skill
 
-Clone this repository as `~/.agents/skills/verified-code-security-audit`, then
-start a new agent session so the skill is discovered:
+Clone the repository into your agent's skill directory, then start a new session
+so the skill is discovered.
+
+Codex:
 
 ```bash
 mkdir -p ~/.agents/skills
 git clone https://github.com/joldmarfilho/verified-code-security-audit.git ~/.agents/skills/verified-code-security-audit
+```
+
+Claude Code:
+
+```bash
+mkdir -p ~/.claude/skills
+git clone https://github.com/joldmarfilho/verified-code-security-audit.git ~/.claude/skills/verified-code-security-audit
 ```
 
 Invoke it explicitly:
@@ -49,6 +58,9 @@ Invoke it explicitly:
 ```text
 Use $verified-code-security-audit to audit this repository and generate a verified security report.
 ```
+
+The skill calls `vcsa` to validate and render its deliverables, so install the
+Python tools below before running an audit.
 
 The standalone prompts are also available in
 [`prompts/audit.en.md`](prompts/audit.en.md) and
@@ -106,12 +118,17 @@ commands instead of hand-editing a PDF or Markdown output.
 
 Every finding requires a repository-relative path, exact lines, a minimal snippet,
 preconditions, exploit path, impact, severity, confidence, remediation, and
-acceptance criteria. Coverage records distinguish `exhaustive`, `sampled`,
-`limited`, and `not-applicable`. Verified strengths use the same evidence standard.
+acceptance criteria. Verified strengths use the same evidence standard.
+
+Coverage claims are checked, not merely declared. `exhaustive` requires a known
+`discovered` count equal to `reviewed`, `not-applicable` requires `reviewed` of
+zero, and partial review must be recorded as `sampled` or `limited`.
 
 Repository content is untrusted. The skill defaults to read-only analysis and
 requires explicit authorization before dynamic execution, dependency installation,
-network access, or mutation. Secret values are replaced with `[REDACTED]`.
+network access, or mutation. Secret values are replaced with `[REDACTED]`, and
+validation rejects recognizable raw credentials in any field of the record — not
+only in evidence snippets.
 
 ## Boundaries and limitations
 

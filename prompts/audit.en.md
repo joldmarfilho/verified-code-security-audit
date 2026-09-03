@@ -61,9 +61,12 @@ or concurrency flaws.
 - For every category, set status to reviewed, limited, not-reviewed, or
   not-applicable and explain the result.
 - For every surface, record discovered and reviewed counts, method, exclusions,
-  and coverage status: exhaustive, sampled, limited, or not-applicable.
-- Never expose a credential. Replace its value with `[REDACTED]` in chat, JSON,
-  PDF, Markdown, logs, and screenshots.
+  and coverage status: exhaustive, sampled, limited, or not-applicable. Use
+  exhaustive only when discovered is known and equals reviewed, and
+  not-applicable only when reviewed is zero; otherwise use sampled or limited.
+- Never expose a credential in any field. Replace its value with `[REDACTED]` in
+  chat, JSON, PDF, Markdown, logs, and screenshots. Validation rejects raw secret
+  material anywhere in the record, including descriptions and remediations.
 - Preserve user changes. Do not reset, clean, stash, reformat, or overwrite the
   audited worktree.
 
@@ -79,6 +82,13 @@ Set `metadata.content_locale` to `en`. The JSON must contain `schema_version`,
 `metadata`, `scope`, `stack`, `coverage`, `categories`, `findings`, `strengths`,
 `recommendations`, and `limitations`. Use the repository's
 `schema/audit-report.schema.json` as the source of truth.
+
+Validation and rendering use the `vcsa` command. If it is unavailable, install the
+skill directory into a virtual environment first:
+
+```text
+python -m pip install /path/to/verified-code-security-audit
+```
 
 Run and correct errors until validation succeeds:
 

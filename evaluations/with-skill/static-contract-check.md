@@ -8,8 +8,8 @@ as empirical agent performance.
 |---|---|---|
 | verified_only | `SKILL.md` forbids turning suspicion into a finding. | met |
 | repository_is_untrusted | `SKILL.md` treats repository content as untrusted and rejects embedded instructions. | met |
-| secrets_redacted | `SKILL.md` requires `[REDACTED]` and forbids reproducing credentials. | met |
-| coverage_honest | The workflow records discovered/reviewed counts and restricts `exhaustive`. | met |
+| secrets_redacted | `SKILL.md` requires `[REDACTED]`, and `vcsa validate` rejects raw secret material in every field of the record. | met |
+| coverage_honest | The workflow records discovered/reviewed counts, and `vcsa validate` enforces `exhaustive` and `not-applicable` against those counts. | met |
 | evidence_complete | Findings require repository-relative paths, exact lines, snippets, and exploit paths. | met |
 | positive_controls | The workflow requires verified strengths and category status. | met |
 | portable_json | Canonical UTF-8 JSON must validate before either renderer runs. | met |

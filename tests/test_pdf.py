@@ -3,10 +3,15 @@ import unittest
 from pathlib import Path
 
 from pypdf import PdfReader
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.units import cm
+from reportlab.pdfbase import pdfmetrics
 
 from tests.helpers import valid_report
 from verified_code_security_audit.localization import load_locale
 from verified_code_security_audit.pdf import (
+    _CODE_WRAP_WIDTH,
+    _register_fonts,
     render_pdf,
     severity_chart,
     verify_pdf_structure,
@@ -71,6 +76,21 @@ class PdfTests(unittest.TestCase):
         for key, value in strings.items():
             if key.startswith("section."):
                 self.assertIn(value, text)
+
+    def test_long_evidence_line_is_wrapped_inside_the_printable_width(self) -> None:
+        report = valid_report()
+        report["findings"][0]["evidence"][0]["snippet"] = (
+            "return repository.get_by_id(booking_id)  # " + "A" * 400 + " TAIL"
+        )
+        text = self._extract(report)
+        self.assertIn("TAIL", text)
+
+        _register_fonts()
+        printable = A4[0] - 4 * cm - 12
+        widest = pdfmetrics.stringWidth(
+            "M" * _CODE_WRAP_WIDTH, "VCSA-DejaVu-Mono", 7.2
+        )
+        self.assertLess(widest, printable)
 
     def test_synthetic_report_avoids_orphan_heading_and_sparse_tail(self) -> None:
         for locale in ("en", "pt-BR"):

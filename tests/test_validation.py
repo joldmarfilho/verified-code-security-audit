@@ -78,6 +78,42 @@ class ValidationTests(unittest.TestCase):
         with self.assertRaisesRegex(AuditValidationError, "redact"):
             validate_report(report)
 
+    def test_rejects_raw_secret_outside_evidence_snippets(self) -> None:
+        for section, mutate in (
+            ("description", lambda report: report["findings"][0].__setitem__(
+                "description", "The key AKIAIOSFODNN7EXAMPLE is committed."
+            )),
+            ("remediation", lambda report: report["findings"][0].__setitem__(
+                "remediation", "Rotate ghp_abcdefghijklmnopqrstuvwxyz123456 immediately."
+            )),
+            ("limitation", lambda report: report["limitations"][0].__setitem__(
+                "details", "-----BEGIN RSA PRIVATE KEY-----"
+            )),
+        ):
+            with self.subTest(section=section):
+                report = valid_report()
+                mutate(report)
+                with self.assertRaisesRegex(AuditValidationError, "redact"):
+                    validate_report(report)
+
+    def test_rejects_incoherent_coverage_status(self) -> None:
+        cases = {
+            "exhaustive coverage requires reviewed": {"reviewed": 3},
+            "exhaustive coverage requires a discovered": {"discovered": None},
+            "not-applicable coverage requires": {"status": "not-applicable"},
+        }
+        for message, changes in cases.items():
+            with self.subTest(changes=changes):
+                report = valid_report()
+                report["coverage"][0].update(changes)
+                with self.assertRaisesRegex(AuditValidationError, message):
+                    validate_report(report)
+
+    def test_accepts_sampled_coverage_below_discovered(self) -> None:
+        report = valid_report()
+        report["coverage"][0].update(status="sampled", reviewed=3)
+        validate_report(report)
+
     def test_rejects_non_object_json(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "audit.json"

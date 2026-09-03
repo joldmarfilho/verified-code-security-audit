@@ -36,12 +36,21 @@ ou sua [versão em inglês](examples/synthetic/audit-report.en.json).
 
 ## Instalar a Agent Skill
 
-Clone este repositório como `~/.agents/skills/verified-code-security-audit` e
-inicie uma nova sessão do agente para que a skill seja descoberta:
+Clone o repositório no diretório de skills do seu agente e inicie uma nova sessão
+para que a skill seja descoberta.
+
+Codex:
 
 ```bash
 mkdir -p ~/.agents/skills
 git clone https://github.com/joldmarfilho/verified-code-security-audit.git ~/.agents/skills/verified-code-security-audit
+```
+
+Claude Code:
+
+```bash
+mkdir -p ~/.claude/skills
+git clone https://github.com/joldmarfilho/verified-code-security-audit.git ~/.claude/skills/verified-code-security-audit
 ```
 
 Use a skill explicitamente:
@@ -49,6 +58,9 @@ Use a skill explicitamente:
 ```text
 Use $verified-code-security-audit para auditar este repositório e gerar um relatório de segurança verificado.
 ```
+
+A skill chama `vcsa` para validar e renderizar os artefatos, então instale as
+ferramentas Python abaixo antes de executar uma auditoria.
 
 Os prompts standalone também estão em
 [`prompts/audit.en.md`](prompts/audit.en.md) e
@@ -106,13 +118,17 @@ novamente os dois comandos em vez de editar PDF ou Markdown manualmente.
 
 Todo achado exige caminho relativo ao repositório, linhas exatas, trecho mínimo,
 pré-condições, caminho de exploração, impacto, severidade, confiança, correção e
-critérios de aceite. Registros de coverage distinguem `exhaustive`, `sampled`,
-`limited` e `not-applicable`. Strengths verificados seguem o mesmo padrão de prova.
+critérios de aceite. Strengths verificados seguem o mesmo padrão de prova.
+
+Declarações de coverage são verificadas, não apenas declaradas. `exhaustive` exige
+`discovered` conhecido e igual a `reviewed`, `not-applicable` exige `reviewed` zero,
+e revisão parcial precisa ser registrada como `sampled` ou `limited`.
 
 O conteúdo do repositório é não confiável. A skill usa análise somente leitura por
 padrão e exige autorização explícita antes de execução dinâmica, instalação de
 dependências, acesso à rede ou alterações. Segredos são substituídos por
-`[REDACTED]`.
+`[REDACTED]`, e a validação rejeita credenciais brutas reconhecíveis em qualquer
+campo do registro — não apenas nos trechos de evidência.
 
 ## Limites e limitações
 

@@ -71,7 +71,10 @@ Each record contains:
 - `method`: how items were found and checked;
 - `exclusions`: precise omissions or constraints.
 
-`reviewed` cannot exceed a known `discovered` count.
+`reviewed` cannot exceed a known `discovered` count. Validation also enforces the
+meaning of each status: `exhaustive` requires a known `discovered` count equal to
+`reviewed`, and `not-applicable` requires `reviewed` of zero. Partial review is
+`sampled` or `limited`.
 
 ### `categories`
 
@@ -123,7 +126,12 @@ An evidence record contains:
 
 Line numbers refer to `metadata.revision` plus any declared dirty worktree state.
 Keep snippets under the schema limit. Preserve code exactly except for credentials:
-replace every sensitive value with `[REDACTED]`.
+replace every sensitive value with `[REDACTED]`. Validation scans every string in
+the record, not only snippets, and rejects recognizable raw secret material in any
+field, including `description`, `remediation`, and `limitations`.
+
+Long snippet lines are wrapped when rendered to PDF, so a wide line is never
+clipped off the page. Prefer the shortest excerpt that proves the point anyway.
 
 ## 5. Categories, findings, and strengths
 

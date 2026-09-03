@@ -79,6 +79,19 @@ def _all_evidence(report: Mapping[str, Any]) -> Iterable[tuple[str, Mapping[str,
                 yield f"$.{section}[{index}].evidence[{evidence_index}]", evidence
 
 
+def _walk_strings(value: Any, location: str = "$") -> Iterable[tuple[str, str]]:
+    """Yield every string in the record with its JSON path."""
+
+    if isinstance(value, str):
+        yield location, value
+    elif isinstance(value, Mapping):
+        for key, item in value.items():
+            yield from _walk_strings(item, f"{location}.{key}")
+    elif isinstance(value, (list, tuple)):
+        for index, item in enumerate(value):
+            yield from _walk_strings(item, f"{location}[{index}]")
+
+
 def _is_repository_relative(value: str) -> bool:
     if not value or "\\" in value or value.startswith("/") or re.match(r"^[A-Za-z]:", value):
         return False
@@ -138,14 +151,24 @@ def _semantic_errors(report: Mapping[str, Any], expected_locale: str | None) -> 
         end_line = item.get("end_line")
         if end_line is not None and end_line < item["start_line"]:
             errors.append(f"{location}.end_line must be greater than or equal to start_line")
-        snippet = str(item["snippet"])
-        if any(pattern.search(snippet) for pattern in _RAW_SECRET_PATTERNS):
-            errors.append(f"{location}.snippet: redact raw secret material")
+    for location, text in _walk_strings(report):
+        if any(pattern.search(text) for pattern in _RAW_SECRET_PATTERNS):
+            errors.append(f"{location}: redact raw secret material")
 
     for index, item in enumerate(report.get("coverage", [])):
+        location = f"$.coverage[{index}]"
         discovered = item.get("discovered")
-        if discovered is not None and item["reviewed"] > discovered:
-            errors.append(f"$.coverage[{index}].reviewed cannot exceed discovered")
+        reviewed = item["reviewed"]
+        status = item["status"]
+        if discovered is not None and reviewed > discovered:
+            errors.append(f"{location}.reviewed cannot exceed discovered")
+        if status == "exhaustive":
+            if discovered is None:
+                errors.append(f"{location}: exhaustive coverage requires a discovered count")
+            elif reviewed < discovered:
+                errors.append(f"{location}: exhaustive coverage requires reviewed == discovered")
+        if status == "not-applicable" and reviewed:
+            errors.append(f"{location}: not-applicable coverage requires reviewed == 0")
     return errors
 
 

@@ -26,6 +26,7 @@ class SkillStructureTests(unittest.TestCase):
             self.assertIn(f"]({path})", text)
         for phrase in (
             "audit-report.<locale>.json",
+            "python -m pip install",
             "vcsa validate",
             "vcsa render",
             "untrusted",
@@ -82,6 +83,8 @@ class SkillStructureTests(unittest.TestCase):
         }
         common = (
             "$verified-code-security-audit",
+            "~/.agents/skills",
+            "~/.claude/skills",
             "vcsa validate",
             "vcsa render",
             "pt-BR",

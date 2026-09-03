@@ -11,7 +11,7 @@ from pathlib import Path
 
 from verified_code_security_audit.localization import SUPPORTED_LOCALES, load_locale
 from verified_code_security_audit.markdown import render_issues
-from verified_code_security_audit.pdf import render_pdf, verify_pdf_structure
+from verified_code_security_audit.pdf import render_pdf
 from verified_code_security_audit.validation import (
     AuditValidationError,
     load_report,
@@ -67,7 +67,6 @@ def _render_outputs(
         temporary_paths.extend([pdf_temporary, markdown_temporary])
 
         render_pdf(report, strings, pdf_temporary)
-        verify_pdf_structure(pdf_temporary)
 
         markdown = render_issues(report, strings)
         if not markdown or not markdown.endswith("\n"):
@@ -100,7 +99,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         arguments = _parser().parse_args(argv)
     except SystemExit as exc:
-        return int(exc.code)
+        return int(exc.code or 0)
 
     try:
         report = load_report(arguments.input)
@@ -125,7 +124,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
     except Exception as exc:  # The CLI must contain renderer failures.
         print(
-            f"render failed ({type(exc).__name__}); no temporary files were retained",
+            f"render failed ({type(exc).__name__}: {exc}); "
+            "no temporary files were retained",
             file=sys.stderr,
         )
         return 1
