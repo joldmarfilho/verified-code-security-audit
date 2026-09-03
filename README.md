@@ -2,6 +2,19 @@
 
 [Português (Brasil)](README.pt-BR.md)
 
+<p align="center">
+  <a href="https://github.com/joldmarfilho/verified-code-security-audit/actions/workflows/tests.yml"><img alt="Tests" src="https://github.com/joldmarfilho/verified-code-security-audit/actions/workflows/tests.yml/badge.svg"></a>
+  <img alt="Python 3.10+" src="https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square&amp;logo=python&amp;logoColor=white">
+  <img alt="JSON Schema Draft 2020-12" src="https://img.shields.io/badge/JSON_Schema-Draft_2020--12-000000?style=flat-square&amp;logo=json&amp;logoColor=white">
+  <img alt="ReportLab PDF" src="https://img.shields.io/badge/ReportLab-PDF-CF2A2A?style=flat-square&amp;logo=adobeacrobatreader&amp;logoColor=white">
+  <img alt="Matplotlib charts" src="https://img.shields.io/badge/Matplotlib-Charts-11557C?style=flat-square&amp;logo=matplotlib&amp;logoColor=white">
+  <img alt="GitHub Actions CI" src="https://img.shields.io/badge/GitHub_Actions-CI-2088FF?style=flat-square&amp;logo=githubactions&amp;logoColor=white">
+  <img alt="Markdown reports" src="https://img.shields.io/badge/Markdown-Reports-000000?style=flat-square&amp;logo=markdown&amp;logoColor=white">
+  <img alt="Codex Agent Skill" src="https://img.shields.io/badge/Agent_Skill-Codex-412991?style=flat-square&amp;logo=openai&amp;logoColor=white">
+  <img alt="English and Brazilian Portuguese" src="https://img.shields.io/badge/Locales-EN_%7C_PT--BR-009C3B?style=flat-square">
+  <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/License-MIT-2EA44F?style=flat-square&amp;logo=opensourceinitiative&amp;logoColor=white"></a>
+</p>
+
 An evidence-first Agent Skill and Python toolkit for reviewing source-code
 security without inventing findings. It records exactly what was inspected,
 separates exhaustive review from sampling, preserves positive controls, and
@@ -127,6 +140,13 @@ Do not post real credentials, private keys, customer data, or exploit details in
 public issue. Prefer GitHub's private vulnerability reporting for this repository;
 if it is unavailable, contact the maintainer privately and include only redacted,
 minimal reproduction details.
+
+## Support this project
+
+If this project helps your security-review workflow, you can support its
+continued development:
+
+<a href="https://www.buymeacoffee.com/joldmarxxtz"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy me a coffee" width="217" height="60"></a>
 
 ## License
 

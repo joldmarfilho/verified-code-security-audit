@@ -2,6 +2,19 @@
 
 [English](README.md)
 
+<p align="center">
+  <a href="https://github.com/joldmarfilho/verified-code-security-audit/actions/workflows/tests.yml"><img alt="Testes" src="https://github.com/joldmarfilho/verified-code-security-audit/actions/workflows/tests.yml/badge.svg"></a>
+  <img alt="Python 3.10+" src="https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square&amp;logo=python&amp;logoColor=white">
+  <img alt="JSON Schema Draft 2020-12" src="https://img.shields.io/badge/JSON_Schema-Draft_2020--12-000000?style=flat-square&amp;logo=json&amp;logoColor=white">
+  <img alt="PDF com ReportLab" src="https://img.shields.io/badge/ReportLab-PDF-CF2A2A?style=flat-square&amp;logo=adobeacrobatreader&amp;logoColor=white">
+  <img alt="Gráficos com Matplotlib" src="https://img.shields.io/badge/Matplotlib-Charts-11557C?style=flat-square&amp;logo=matplotlib&amp;logoColor=white">
+  <img alt="CI com GitHub Actions" src="https://img.shields.io/badge/GitHub_Actions-CI-2088FF?style=flat-square&amp;logo=githubactions&amp;logoColor=white">
+  <img alt="Relatórios Markdown" src="https://img.shields.io/badge/Markdown-Reports-000000?style=flat-square&amp;logo=markdown&amp;logoColor=white">
+  <img alt="Agent Skill para Codex" src="https://img.shields.io/badge/Agent_Skill-Codex-412991?style=flat-square&amp;logo=openai&amp;logoColor=white">
+  <img alt="Inglês e português do Brasil" src="https://img.shields.io/badge/Locales-EN_%7C_PT--BR-009C3B?style=flat-square">
+  <a href="LICENSE"><img alt="Licença MIT" src="https://img.shields.io/badge/License-MIT-2EA44F?style=flat-square&amp;logo=opensourceinitiative&amp;logoColor=white"></a>
+</p>
+
 Uma Agent Skill e um conjunto de ferramentas Python orientados por evidências
 para revisar a segurança de código-fonte sem inventar achados. O projeto registra
 exatamente o que foi inspecionado, separa revisão exaustiva de amostragem, preserva
@@ -128,6 +141,13 @@ Não publique credenciais reais, chaves privadas, dados de clientes nem detalhes
 exploração em uma issue pública. Prefira o relato privado de vulnerabilidade do
 GitHub neste repositório; se ele não estiver disponível, fale com o mantenedor em
 canal privado e envie apenas detalhes mínimos e anonimizados.
+
+## Apoie o projeto
+
+Se este projeto ajuda seu fluxo de revisão de segurança, você pode apoiar a
+continuidade do desenvolvimento:
+
+<a href="https://www.buymeacoffee.com/joldmarxxtz"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy me a coffee" width="217" height="60"></a>
 
 ## Licença
 

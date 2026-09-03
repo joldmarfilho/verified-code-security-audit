@@ -89,10 +89,25 @@ class SkillStructureTests(unittest.TestCase):
             "github-issues.",
             "MIT",
         )
+        branding = (
+            "actions/workflows/tests.yml/badge.svg",
+            "img.shields.io/badge/Python-3.10%2B",
+            "img.shields.io/badge/JSON_Schema-Draft_2020--12",
+            "img.shields.io/badge/ReportLab-PDF",
+            "img.shields.io/badge/Matplotlib-Charts",
+            "img.shields.io/badge/GitHub_Actions-CI",
+            "img.shields.io/badge/Markdown-Reports",
+            "img.shields.io/badge/Agent_Skill-Codex",
+            "img.shields.io/badge/Locales-EN_%7C_PT--BR",
+            "cdn.buymeacoffee.com/buttons/v2/default-yellow.png",
+            "buymeacoffee.com/joldmarxxtz",
+        )
         for filename, expected in cases.items():
             text = (ROOT / filename).read_text(encoding="utf-8")
             for phrase in common:
                 self.assertIn(phrase, text, f"{filename}: {phrase}")
+            for marker in branding:
+                self.assertIn(marker, text, f"{filename}: {marker}")
             self.assertIn(expected["language"], text.lower())
             self.assertIn(expected["limitations"], text.lower())
             self.assertIn(expected["counterpart"], text)
