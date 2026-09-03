@@ -10,6 +10,31 @@ scripts, package-manager hooks, containers, migrations, or network services. Do
 not install dependencies or modify application files without explicit user
 authorization.
 
+## Operational Discipline and Anti-Rationalization
+
+This audit enforces strict operational discipline inspired by
+[Superpowers](https://github.com/obra/superpowers) (`using-superpowers`,
+`verification-before-completion`, `systematic-debugging`). Executing agents must
+adopt strict discipline:
+
+1. **Task Tracking:** Create and maintain an active task checklist covering
+   Phases 1 through 5. Mark each completed step (`- [x]`) before moving to the
+   next. Never skip phases or rely on vague context memory in long sessions.
+2. **Anti-Rationalization Table (Red Flags):** Thoughts that indicate critical
+   deviations and must be stopped immediately:
+
+| Prohibited Thought (Shortcut) | Non-Negotiable Operational Reality |
+|---|---|
+| "The repository is small / seems simple, I can analyze it directly from memory" | Every audit requires an explicit snapshot, stack detection, and surface inventory first. |
+| "I'll inspect only the main files and infer the rest" | Never call sampling exhaustive. Record actual discovered/reviewed counts and use `sampled` or `limited`. |
+| "The JSON looks valid, I can skip `vcsa validate`" | `vcsa validate` is mandatory; the canonical JSON is the single source of truth and must pass strict validation. |
+| "The application looks secure, I can declare the repository secure" | Strictly prohibited. Only state: “No verified findings were identified in the reviewed scope under the stated methodology and limitations.” |
+| "I can generate the PDF or Markdown directly without validated JSON" | All presentation reports must be rendered exclusively via `vcsa render` from the validated canonical JSON. |
+
+3. **Verification-Before-Completion Gate:** Never conclude the audit or present
+   final findings without first running validation and rendering, and structurally
+   inspecting the generated PDF and Markdown files.
+
 ## Phase 1 — Snapshot, scope, and stack
 
 Before evaluating vulnerabilities:
@@ -121,7 +146,9 @@ location and deduplicate acceptance criteria.
 Open and structurally verify the PDF. Rasterize representative pages when tools
 are available and inspect clipping, Unicode, charts, tables, evidence blocks,
 headers, and page numbers. Confirm the Markdown ends cleanly and contains no raw
-credential.
+credential. Apply the *verification-before-completion* principle from
+[Superpowers](https://github.com/obra/superpowers): empirical evidence before any
+claim of completion.
 
 In the final response, list finding counts by severity, each verified finding by
 file and line, strengths, coverage and exclusions, limitations, and every
