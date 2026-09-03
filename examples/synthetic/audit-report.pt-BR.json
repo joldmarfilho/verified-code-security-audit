@@ -1,0 +1,253 @@
+{
+  "schema_version": "1.0.0",
+  "metadata": {
+    "project_name": "Acme Booking",
+    "repository": "https://example.invalid/acme/booking",
+    "revision": "0123456789abcdef0123456789abcdef01234567",
+    "branch": "main",
+    "audited_at": "2026-09-02T12:00:00Z",
+    "worktree_dirty": false,
+    "content_locale": "pt-BR"
+  },
+  "scope": {
+    "summary": "Revisão estática da API fictícia de reservas, cliente web, configuração de implantação e parte do histórico do repositório.",
+    "included_paths": ["app/", "web/", ".github/workflows/", "Dockerfile", "compose.yaml", "pyproject.toml"],
+    "excluded_paths": [
+      {"path": "vendor/", "reason": "Código de terceiros gerado automaticamente."}
+    ]
+  },
+  "stack": [
+    {
+      "kind": "linguagem",
+      "name": "Python",
+      "version": "3.12",
+      "evidence": [{"path": "pyproject.toml", "start_line": 8, "end_line": 8, "snippet": "requires-python = \">=3.12\""}]
+    },
+    {
+      "kind": "framework-backend",
+      "name": "FastAPI",
+      "version": "0.116",
+      "evidence": [{"path": "pyproject.toml", "start_line": 14, "end_line": 14, "snippet": "\"fastapi>=0.116\""}]
+    },
+    {
+      "kind": "orm",
+      "name": "SQLAlchemy",
+      "version": "2.0",
+      "evidence": [{"path": "pyproject.toml", "start_line": 15, "end_line": 15, "snippet": "\"sqlalchemy>=2.0\""}]
+    },
+    {
+      "kind": "authentication",
+      "name": "Autenticação JWT",
+      "version": null,
+      "evidence": [{"path": "app/auth/tokens.py", "start_line": 31, "end_line": 31, "snippet": "jwt.decode(token, public_key, algorithms=[\"RS256\"] )"}]
+    },
+    {
+      "kind": "framework-frontend",
+      "name": "React",
+      "version": "19",
+      "evidence": [{"path": "web/package.json", "start_line": 12, "end_line": 12, "snippet": "\"react\": \"^19.0.0\""}]
+    },
+    {
+      "kind": "banco-de-dados",
+      "name": "PostgreSQL",
+      "version": "17",
+      "evidence": [{"path": "compose.yaml", "start_line": 6, "end_line": 6, "snippet": "image: postgres:17-alpine"}]
+    },
+    {
+      "kind": "container",
+      "name": "Docker",
+      "version": null,
+      "evidence": [{"path": "Dockerfile", "start_line": 1, "end_line": 1, "snippet": "FROM python:3.12-slim"}]
+    },
+    {
+      "kind": "ci",
+      "name": "GitHub Actions",
+      "version": null,
+      "evidence": [{"path": ".github/workflows/ci.yml", "start_line": 1, "end_line": 3, "snippet": "name: CI\non:\n  pull_request:"}]
+    }
+  ],
+  "coverage": [
+    {
+      "surface": "api-routes",
+      "status": "exhaustive",
+      "discovered": 18,
+      "reviewed": 18,
+      "method": "Enumeramos todos os registros de rotas FastAPI e rastreamos suas dependências de autorização.",
+      "exclusions": []
+    },
+    {
+      "surface": "git-history",
+      "status": "limited",
+      "discovered": null,
+      "reviewed": 12,
+      "method": "Revisamos commits recentes e nomes de arquivos semelhantes a credenciais sem executar código do repositório.",
+      "exclusions": ["O histórico anterior à amostra sintética de doze commits não estava disponível."]
+    },
+    {
+      "surface": "frontend-inputs",
+      "status": "sampled",
+      "discovered": 9,
+      "reviewed": 5,
+      "method": "Rastreamos entradas representativas de reservas e perfis dos componentes React até as chamadas da API.",
+      "exclusions": ["Quatro entradas apenas visuais não foram rastreadas além do estado local."]
+    }
+  ],
+  "categories": [
+    {
+      "id": "tenant-isolation",
+      "name": "Isolamento entre organizações",
+      "status": "reviewed",
+      "summary": "Todas as rotas de reservas foram verificadas quanto ao filtro por organização.",
+      "evidence": [{"path": "app/api/bookings.py", "start_line": 10, "end_line": 88, "snippet": "router = APIRouter(prefix=\"/bookings\")"}]
+    },
+    {
+      "id": "configuration",
+      "name": "Configuração segura",
+      "status": "reviewed",
+      "summary": "Valores padrão e tratamento do ambiente de implantação foram revisados.",
+      "evidence": [{"path": "app/settings.py", "start_line": 8, "end_line": 26, "snippet": "class Settings(BaseSettings):"}]
+    },
+    {
+      "id": "input-validation",
+      "name": "Validação de entradas",
+      "status": "reviewed",
+      "summary": "Esquemas representativos da API e a construção de consultas foram rastreados.",
+      "evidence": [{"path": "app/schemas/bookings.py", "start_line": 5, "end_line": 32, "snippet": "class BookingUpdate(BaseModel):"}]
+    },
+    {
+      "id": "secret-history",
+      "name": "Segredos e histórico do repositório",
+      "status": "limited",
+      "summary": "Somente o histórico sintético recente fornecido estava disponível.",
+      "evidence": [{"path": "config/env.example", "start_line": 4, "end_line": 4, "snippet": "JWT_SIGNING_KEY=[REDACTED]"}]
+    },
+    {
+      "id": "mobile-security",
+      "name": "Segurança de aplicativo móvel",
+      "status": "not-applicable",
+      "summary": "Nenhum código ou pacote de aplicativo móvel estava presente no escopo.",
+      "evidence": []
+    }
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "category_id": "tenant-isolation",
+      "severity": "high",
+      "confidence": "high",
+      "title": "Consulta de reserva não filtra pela organização",
+      "description": "Uma reserva é consultada pelo identificador público sem aplicar o escopo da organização autenticada.",
+      "preconditions": ["Uma pessoa autenticada conhece o identificador de outra reserva."],
+      "exploit_path": "GET /bookings/{id} envia o identificador da rota para uma consulta sem escopo.",
+      "impact": "Uma pessoa pode ler dados de reserva pertencentes a outra organização.",
+      "evidence": [{"path": "app/api/bookings.py", "start_line": 42, "end_line": 42, "snippet": "return repository.get_by_id(booking_id)"}],
+      "remediation": "Filtrar simultaneamente pelo identificador da reserva e pela organização autenticada.",
+      "acceptance_criteria": ["Um identificador de outra organização retorna 404.", "Uma reserva da mesma organização continua acessível."],
+      "actionable": true,
+      "issue_group": "tenant-authorization",
+      "references": ["CWE-639"]
+    },
+    {
+      "id": "F2",
+      "category_id": "tenant-isolation",
+      "severity": "high",
+      "confidence": "high",
+      "title": "Atualização de reserva confia na organização enviada no corpo",
+      "description": "O fluxo de atualização envia um identificador de organização controlado pela pessoa usuária para a persistência.",
+      "preconditions": ["Uma pessoa autenticada pode atualizar uma reserva que consegue referenciar."],
+      "exploit_path": "PATCH /bookings/{id} aceita organization_id e encaminha o payload completo.",
+      "impact": "Uma pessoa pode tentar mover ou sobrescrever uma reserva entre organizações.",
+      "evidence": [{"path": "app/api/bookings.py", "start_line": 67, "end_line": 70, "snippet": "changes = payload.model_dump(exclude_unset=True)\nreturn repository.update(booking_id, changes)"}],
+      "remediation": "Derivar o escopo da organização da identidade autenticada e rejeitar campos de escopo no payload.",
+      "acceptance_criteria": ["O escopo da organização nunca é aceito do corpo da requisição.", "Um identificador de outra organização retorna 404."],
+      "actionable": true,
+      "issue_group": "tenant-authorization",
+      "references": ["CWE-639", "CWE-915"]
+    },
+    {
+      "id": "F3",
+      "category_id": "configuration",
+      "severity": "low",
+      "confidence": "high",
+      "title": "Modo de depuração vem habilitado por padrão",
+      "description": "A aplicação habilita comportamento de depuração quando a variável de ambiente está ausente.",
+      "preconditions": ["Uma implantação omite a variável de ambiente DEBUG."],
+      "exploit_path": "A configuração padrão expõe erros detalhados em uma implantação que seria válida.",
+      "impact": "Erros detalhados podem revelar informações internas de implementação.",
+      "evidence": [{"path": "app/settings.py", "start_line": 14, "end_line": 14, "snippet": "DEBUG = os.getenv(\"DEBUG\", \"true\") == \"true\""}],
+      "remediation": "Usar false como padrão seguro e habilitar depuração somente em perfis explícitos de desenvolvimento.",
+      "acceptance_criteria": ["DEBUG é false quando a variável de ambiente está ausente.", "A inicialização em produção rejeita um valor true explícito."],
+      "actionable": true,
+      "issue_group": "secure-defaults",
+      "references": ["CWE-489"]
+    },
+    {
+      "id": "F4",
+      "category_id": "input-validation",
+      "severity": "informational",
+      "confidence": "high",
+      "title": "Filtros parametrizados evitam concatenação de texto SQL",
+      "description": "A busca revisada constrói filtros com expressões SQLAlchemy, não com strings SQL.",
+      "preconditions": ["Uma pessoa informa um termo de busca de reservas."],
+      "exploit_path": "Nenhum caminho de injeção foi verificado na consulta revisada.",
+      "impact": "Esse controle reduz o risco de injeção SQL na superfície revisada.",
+      "evidence": [{"path": "app/repositories/bookings.py", "start_line": 51, "end_line": 54, "snippet": "query = select(Booking).where(Booking.title.ilike(pattern))"}],
+      "remediation": "Preservar a parametrização por expressões ao adicionar filtros.",
+      "acceptance_criteria": ["Novos filtros de reservas continuam usando expressões SQLAlchemy parametrizadas."],
+      "actionable": false,
+      "references": ["CWE-89"]
+    }
+  ],
+  "strengths": [
+    {
+      "title": "Assinaturas e expiração de JWT são verificadas",
+      "description": "A dependência de autenticação fixa RS256 e verifica a expiração.",
+      "evidence": [{"path": "app/auth/tokens.py", "start_line": 31, "end_line": 35, "snippet": "jwt.decode(token, public_key, algorithms=[\"RS256\"], options={\"verify_exp\": True})"}]
+    },
+    {
+      "title": "Filtros do banco usam parametrização",
+      "description": "As buscas de reservas revisadas usam expressões SQLAlchemy.",
+      "evidence": [{"path": "app/repositories/bookings.py", "start_line": 51, "end_line": 54, "snippet": "select(Booking).where(Booking.title.ilike(pattern))"}]
+    },
+    {
+      "title": "Cabeçalhos básicos de segurança estão centralizados",
+      "description": "Um middleware aplica proteções de frame, tipo de conteúdo e referência.",
+      "evidence": [{"path": "app/middleware/security_headers.py", "start_line": 12, "end_line": 18, "snippet": "response.headers[\"X-Content-Type-Options\"] = \"nosniff\""}]
+    }
+  ],
+  "recommendations": [
+    {
+      "id": "R1",
+      "priority": "P1",
+      "title": "Centralizar o acesso a reservas com escopo de organização",
+      "details": "Exigir organization_id nas consultas do repositório e derivá-lo somente da identidade autenticada.",
+      "finding_ids": ["F1", "F2"]
+    },
+    {
+      "id": "R2",
+      "priority": "P2",
+      "title": "Fazer configurações de produção falharem de modo seguro",
+      "details": "Usar false como padrão de depuração e rejeitar combinações inseguras em produção.",
+      "finding_ids": ["F3"]
+    },
+    {
+      "id": "R3",
+      "priority": "P3",
+      "title": "Adicionar testes de regressão para valores padrão seguros",
+      "details": "Exercitar padrões de configuração no CI sem carregar credenciais reais.",
+      "finding_ids": ["F3"]
+    }
+  ],
+  "limitations": [
+    {
+      "title": "Sem execução dinâmica",
+      "details": "O código do repositório foi tratado como não confiável e não foi executado.",
+      "affected_paths": ["app/", "web/"]
+    },
+    {
+      "title": "Histórico limitado do repositório",
+      "details": "Somente uma amostra sintética de doze commits estava disponível para revisão.",
+      "affected_paths": [".git/"]
+    }
+  ]
+}

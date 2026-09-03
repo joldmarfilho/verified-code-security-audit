@@ -1,0 +1,253 @@
+{
+  "schema_version": "1.0.0",
+  "metadata": {
+    "project_name": "Acme Booking",
+    "repository": "https://example.invalid/acme/booking",
+    "revision": "0123456789abcdef0123456789abcdef01234567",
+    "branch": "main",
+    "audited_at": "2026-09-02T12:00:00Z",
+    "worktree_dirty": false,
+    "content_locale": "en"
+  },
+  "scope": {
+    "summary": "Static review of the fictional booking API, web client, deployment configuration, and selected repository history.",
+    "included_paths": ["app/", "web/", ".github/workflows/", "Dockerfile", "compose.yaml", "pyproject.toml"],
+    "excluded_paths": [
+      {"path": "vendor/", "reason": "Third-party generated code."}
+    ]
+  },
+  "stack": [
+    {
+      "kind": "language",
+      "name": "Python",
+      "version": "3.12",
+      "evidence": [{"path": "pyproject.toml", "start_line": 8, "end_line": 8, "snippet": "requires-python = \">=3.12\""}]
+    },
+    {
+      "kind": "backend-framework",
+      "name": "FastAPI",
+      "version": "0.116",
+      "evidence": [{"path": "pyproject.toml", "start_line": 14, "end_line": 14, "snippet": "\"fastapi>=0.116\""}]
+    },
+    {
+      "kind": "orm",
+      "name": "SQLAlchemy",
+      "version": "2.0",
+      "evidence": [{"path": "pyproject.toml", "start_line": 15, "end_line": 15, "snippet": "\"sqlalchemy>=2.0\""}]
+    },
+    {
+      "kind": "authentication",
+      "name": "JWT authentication",
+      "version": null,
+      "evidence": [{"path": "app/auth/tokens.py", "start_line": 31, "end_line": 31, "snippet": "jwt.decode(token, public_key, algorithms=[\"RS256\"] )"}]
+    },
+    {
+      "kind": "frontend-framework",
+      "name": "React",
+      "version": "19",
+      "evidence": [{"path": "web/package.json", "start_line": 12, "end_line": 12, "snippet": "\"react\": \"^19.0.0\""}]
+    },
+    {
+      "kind": "database",
+      "name": "PostgreSQL",
+      "version": "17",
+      "evidence": [{"path": "compose.yaml", "start_line": 6, "end_line": 6, "snippet": "image: postgres:17-alpine"}]
+    },
+    {
+      "kind": "container",
+      "name": "Docker",
+      "version": null,
+      "evidence": [{"path": "Dockerfile", "start_line": 1, "end_line": 1, "snippet": "FROM python:3.12-slim"}]
+    },
+    {
+      "kind": "ci",
+      "name": "GitHub Actions",
+      "version": null,
+      "evidence": [{"path": ".github/workflows/ci.yml", "start_line": 1, "end_line": 3, "snippet": "name: CI\non:\n  pull_request:"}]
+    }
+  ],
+  "coverage": [
+    {
+      "surface": "api-routes",
+      "status": "exhaustive",
+      "discovered": 18,
+      "reviewed": 18,
+      "method": "Enumerated every FastAPI route registration and traced its authorization dependency.",
+      "exclusions": []
+    },
+    {
+      "surface": "git-history",
+      "status": "limited",
+      "discovered": null,
+      "reviewed": 12,
+      "method": "Reviewed recent commits and credential-like filenames without executing repository code.",
+      "exclusions": ["History older than the synthetic twelve-commit sample was unavailable."]
+    },
+    {
+      "surface": "frontend-inputs",
+      "status": "sampled",
+      "discovered": 9,
+      "reviewed": 5,
+      "method": "Traced representative booking and profile inputs from React components to API calls.",
+      "exclusions": ["Four presentation-only inputs were not traced beyond local state."]
+    }
+  ],
+  "categories": [
+    {
+      "id": "tenant-isolation",
+      "name": "Tenant isolation",
+      "status": "reviewed",
+      "summary": "All booking routes were checked for organization scoping.",
+      "evidence": [{"path": "app/api/bookings.py", "start_line": 10, "end_line": 88, "snippet": "router = APIRouter(prefix=\"/bookings\")"}]
+    },
+    {
+      "id": "configuration",
+      "name": "Secure configuration",
+      "status": "reviewed",
+      "summary": "Defaults and deployment environment handling were reviewed.",
+      "evidence": [{"path": "app/settings.py", "start_line": 8, "end_line": 26, "snippet": "class Settings(BaseSettings):"}]
+    },
+    {
+      "id": "input-validation",
+      "name": "Input validation",
+      "status": "reviewed",
+      "summary": "Representative API input schemas and query construction were traced.",
+      "evidence": [{"path": "app/schemas/bookings.py", "start_line": 5, "end_line": 32, "snippet": "class BookingUpdate(BaseModel):"}]
+    },
+    {
+      "id": "secret-history",
+      "name": "Secrets and repository history",
+      "status": "limited",
+      "summary": "Only the provided recent synthetic history was available.",
+      "evidence": [{"path": "config/env.example", "start_line": 4, "end_line": 4, "snippet": "JWT_SIGNING_KEY=[REDACTED]"}]
+    },
+    {
+      "id": "mobile-security",
+      "name": "Mobile application security",
+      "status": "not-applicable",
+      "summary": "No mobile application code or package was present in scope.",
+      "evidence": []
+    }
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "category_id": "tenant-isolation",
+      "severity": "high",
+      "confidence": "high",
+      "title": "Booking lookup does not filter by organization",
+      "description": "A booking is fetched by public identifier without applying the authenticated organization scope.",
+      "preconditions": ["An authenticated user knows another booking identifier."],
+      "exploit_path": "GET /bookings/{id} passes the route identifier to an unscoped repository lookup.",
+      "impact": "A user can read booking details belonging to another organization.",
+      "evidence": [{"path": "app/api/bookings.py", "start_line": 42, "end_line": 42, "snippet": "return repository.get_by_id(booking_id)"}],
+      "remediation": "Filter by both booking id and the authenticated organization id.",
+      "acceptance_criteria": ["A cross-organization booking id returns 404.", "A same-organization booking remains accessible."],
+      "actionable": true,
+      "issue_group": "tenant-authorization",
+      "references": ["CWE-639"]
+    },
+    {
+      "id": "F2",
+      "category_id": "tenant-isolation",
+      "severity": "high",
+      "confidence": "high",
+      "title": "Booking updates trust organization from the request body",
+      "description": "The update flow forwards a caller-controlled organization identifier to persistence.",
+      "preconditions": ["An authenticated user can update a booking they can reference."],
+      "exploit_path": "PATCH /bookings/{id} accepts organization_id and forwards the complete payload.",
+      "impact": "A user can attempt to move or overwrite a booking across organization boundaries.",
+      "evidence": [{"path": "app/api/bookings.py", "start_line": 67, "end_line": 70, "snippet": "changes = payload.model_dump(exclude_unset=True)\nreturn repository.update(booking_id, changes)"}],
+      "remediation": "Derive organization scope from the authenticated principal and reject scope fields in the payload.",
+      "acceptance_criteria": ["Organization scope is never accepted from the request body.", "A cross-organization booking id returns 404."],
+      "actionable": true,
+      "issue_group": "tenant-authorization",
+      "references": ["CWE-639", "CWE-915"]
+    },
+    {
+      "id": "F3",
+      "category_id": "configuration",
+      "severity": "low",
+      "confidence": "high",
+      "title": "Debug mode defaults to enabled",
+      "description": "The application enables debug behavior when the environment variable is absent.",
+      "preconditions": ["A deployment omits the DEBUG environment variable."],
+      "exploit_path": "The default configuration exposes verbose error behavior in an otherwise valid deployment.",
+      "impact": "Verbose errors can disclose internal implementation details.",
+      "evidence": [{"path": "app/settings.py", "start_line": 14, "end_line": 14, "snippet": "DEBUG = os.getenv(\"DEBUG\", \"true\") == \"true\""}],
+      "remediation": "Use a fail-closed false default and enable debug mode only in explicit development profiles.",
+      "acceptance_criteria": ["DEBUG is false when the environment variable is absent.", "Production startup rejects an explicit true value."],
+      "actionable": true,
+      "issue_group": "secure-defaults",
+      "references": ["CWE-489"]
+    },
+    {
+      "id": "F4",
+      "category_id": "input-validation",
+      "severity": "informational",
+      "confidence": "high",
+      "title": "Parameterized filters prevent SQL text concatenation",
+      "description": "The reviewed search path builds filters with SQLAlchemy expressions rather than SQL strings.",
+      "preconditions": ["A caller supplies a booking search term."],
+      "exploit_path": "No injection path was verified for the reviewed query.",
+      "impact": "This control reduces SQL injection risk on the reviewed surface.",
+      "evidence": [{"path": "app/repositories/bookings.py", "start_line": 51, "end_line": 54, "snippet": "query = select(Booking).where(Booking.title.ilike(pattern))"}],
+      "remediation": "Preserve expression-based parameter binding when adding filters.",
+      "acceptance_criteria": ["New booking filters continue to use bound SQLAlchemy expressions."],
+      "actionable": false,
+      "references": ["CWE-89"]
+    }
+  ],
+  "strengths": [
+    {
+      "title": "JWT signatures and expiry are verified",
+      "description": "The authentication dependency pins RS256 and verifies expiration.",
+      "evidence": [{"path": "app/auth/tokens.py", "start_line": 31, "end_line": 35, "snippet": "jwt.decode(token, public_key, algorithms=[\"RS256\"], options={\"verify_exp\": True})"}]
+    },
+    {
+      "title": "Database filters use parameter binding",
+      "description": "Reviewed booking searches use SQLAlchemy expressions.",
+      "evidence": [{"path": "app/repositories/bookings.py", "start_line": 51, "end_line": 54, "snippet": "select(Booking).where(Booking.title.ilike(pattern))"}]
+    },
+    {
+      "title": "Baseline browser security headers are centralized",
+      "description": "A middleware applies frame, content type, and referrer protections.",
+      "evidence": [{"path": "app/middleware/security_headers.py", "start_line": 12, "end_line": 18, "snippet": "response.headers[\"X-Content-Type-Options\"] = \"nosniff\""}]
+    }
+  ],
+  "recommendations": [
+    {
+      "id": "R1",
+      "priority": "P1",
+      "title": "Centralize tenant-scoped booking access",
+      "details": "Require organization_id in repository lookups and derive it only from the authenticated principal.",
+      "finding_ids": ["F1", "F2"]
+    },
+    {
+      "id": "R2",
+      "priority": "P2",
+      "title": "Make production defaults fail closed",
+      "details": "Default debug mode to false and reject unsafe production combinations.",
+      "finding_ids": ["F3"]
+    },
+    {
+      "id": "R3",
+      "priority": "P3",
+      "title": "Add regression checks for secure defaults",
+      "details": "Exercise configuration defaults in CI without loading real credentials.",
+      "finding_ids": ["F3"]
+    }
+  ],
+  "limitations": [
+    {
+      "title": "No dynamic execution",
+      "details": "Repository code was treated as untrusted and was not executed.",
+      "affected_paths": ["app/", "web/"]
+    },
+    {
+      "title": "Limited repository history",
+      "details": "Only a synthetic twelve-commit sample was available for history review.",
+      "affected_paths": [".git/"]
+    }
+  ]
+}
