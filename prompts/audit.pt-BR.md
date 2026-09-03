@@ -10,6 +10,31 @@ scripts de build, hooks de gerenciadores de pacote, contêineres, migrações ou
 serviços de rede. Não instale dependências nem modifique arquivos da aplicação
 sem autorização explícita da pessoa usuária.
 
+## Disciplina Operacional e Anti-Racionalização
+
+Esta auditoria adota os princípios de rigor e execução metódica do
+[Superpowers](https://github.com/obra/superpowers) (`using-superpowers`,
+`verification-before-completion`, `systematic-debugging`). Agentes executores devem
+adotar disciplina estrita:
+
+1. **Rastreamento de tarefas (Task Tracking):** Crie e mantenha um checklist/artefato
+   de tarefas para as Fases 1 a 5. Atualize cada etapa concluída (`- [x]`) antes de
+   avançar para a próxima. Nunca pule fases nem confie em atalhos contextuais em conversas longas.
+2. **Tabela de Anti-Racionalização (Red Flags):** Pensamentos que representam desvios
+   críticos e devem ser imediatamente interrompidos:
+
+| Pensamento Proibido (Atalho) | Realidade Operacional Inegociável |
+|---|---|
+| "O repositório é pequeno / parece simples, posso analisar direto de cabeça" | Toda auditoria exige snapshot, mapeamento da stack e inventário de superfícies prévios. |
+| "Vou inspecionar apenas os arquivos principais e inferir o resto" | Amostragem nunca deve ser chamada de exaustiva. Registre contagens reais e use `sampled` ou `limited`. |
+| "O JSON parece visualmente correto, posso pular o `vcsa validate`" | `vcsa validate` é obrigatório; o JSON canônico é a única fonte da verdade e deve passar na validação estrita. |
+| "A aplicação parece segura, posso declarar que o repositório é seguro" | Proibido. Afirme apenas: “Nenhum achado verificado foi identificado no escopo revisado, considerando a metodologia e as limitações declaradas.” |
+| "Posso gerar o PDF ou Markdown diretamente sem o JSON validado" | Todos os relatórios de apresentação devem ser renderizados exclusivamente via `vcsa render` a partir do JSON canônico validado. |
+
+3. **Portão de Verificação Pré-Conclusão (*Verification-Before-Completion*):** É proibido
+   declarar a auditoria concluída sem antes rodar a validação e renderização, e inspecionar
+   estruturalmente o PDF e o Markdown gerados.
+
 ## Fase 1 — Snapshot, escopo e stack
 
 Antes de avaliar vulnerabilidades:
@@ -122,7 +147,9 @@ resolver o grupo; preserve todos os locais e elimine critérios de aceite repeti
 Abra e verifique estruturalmente o PDF. Quando houver ferramentas, rasterize
 páginas representativas e inspecione cortes, Unicode, gráficos, tabelas, blocos de
 evidência, cabeçalhos e números de página. Confirme que o Markdown termina
-corretamente e não contém credencial bruta.
+corretamente e não contém credencial bruta. Aplique o princípio de
+*verification-before-completion* do [Superpowers](https://github.com/obra/superpowers):
+evidência empírica antes de qualquer asserção de conclusão.
 
 Na resposta final, informe contagens por severidade, cada finding verificado por
 arquivo e linha, strengths, coverage e exclusões, limitações e todos os caminhos
