@@ -173,6 +173,10 @@ continued development:
 
 <a href="https://www.buymeacoffee.com/joldmarxxtz"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy me a coffee" width="217" height="60"></a>
 
+## Acknowledgements
+
+The original security-audit prompt and its core review concepts were created by [@deyvin](https://github.com/deyvin). This project builds upon that foundation by introducing canonical JSON Schema validation, deterministic multi-locale PDF/Markdown rendering via `vcsa`, and operational discipline guidelines from [Superpowers](https://github.com/obra/superpowers).
+
 ## License
 
 Released under the [MIT License](LICENSE).

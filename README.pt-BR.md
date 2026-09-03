@@ -173,6 +173,10 @@ continuidade do desenvolvimento:
 
 <a href="https://www.buymeacoffee.com/joldmarxxtz"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy me a coffee" width="217" height="60"></a>
 
+## Agradecimentos e Créditos
+
+O prompt original de auditoria de segurança e seus conceitos centrais foram criados por [@deyvin](https://github.com/deyvin). Este projeto expande essa base introduzindo validação formal por JSON Schema, renderização determinística de PDF/Markdown bilíngue com a CLI `vcsa` e diretrizes de disciplina operacional do [Superpowers](https://github.com/obra/superpowers).
+
 ## Licença
 
 Distribuído sob a [licença MIT](LICENSE).
