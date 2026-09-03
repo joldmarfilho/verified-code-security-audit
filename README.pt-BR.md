@@ -11,6 +11,7 @@
   <img alt="CI com GitHub Actions" src="https://img.shields.io/badge/GitHub_Actions-CI-2088FF?style=flat-square&amp;logo=githubactions&amp;logoColor=white">
   <img alt="Relatórios Markdown" src="https://img.shields.io/badge/Markdown-Reports-000000?style=flat-square&amp;logo=markdown&amp;logoColor=white">
   <img alt="Agent Skill para Codex" src="https://img.shields.io/badge/Agent_Skill-Codex-412991?style=flat-square&amp;logo=openai&amp;logoColor=white">
+  <a href="https://github.com/obra/superpowers"><img alt="Compatível com Superpowers" src="https://img.shields.io/badge/Superpowers-Compat%C3%ADvel-6B46C1?style=flat-square"></a>
   <img alt="Inglês e português do Brasil" src="https://img.shields.io/badge/Locales-EN_%7C_PT--BR-009C3B?style=flat-square">
   <a href="LICENSE"><img alt="Licença MIT" src="https://img.shields.io/badge/License-MIT-2EA44F?style=flat-square&amp;logo=opensourceinitiative&amp;logoColor=white"></a>
 </p>
@@ -58,6 +59,13 @@ Use a skill explicitamente:
 ```text
 Use $verified-code-security-audit para auditar este repositório e gerar um relatório de segurança verificado.
 ```
+
+### Disciplina operacional e Superpowers
+
+Esta skill está alinhada aos padrões de rigor e disciplina operacional do [Superpowers](https://github.com/obra/superpowers):
+- **Rastreamento de tarefas (`using-superpowers`):** O agente mantém um checklist ativo de tarefas para todas as 5 fases da auditoria.
+- **Investigação sistemática (`systematic-debugging`):** Cada vulnerabilidade deve ser fundamentada em um caminho de exploração comprovado de ponta a ponta, e não em suposições superficiais.
+- **Verificação pré-conclusão (`verification-before-completion`):** A execução só é finalizada após a validação e renderização bem-sucedidas via `vcsa validate` e `vcsa render`.
 
 A skill chama `vcsa` para validar e renderizar os artefatos, então instale as
 ferramentas Python abaixo antes de executar uma auditoria.

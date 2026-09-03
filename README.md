@@ -11,6 +11,7 @@
   <img alt="GitHub Actions CI" src="https://img.shields.io/badge/GitHub_Actions-CI-2088FF?style=flat-square&amp;logo=githubactions&amp;logoColor=white">
   <img alt="Markdown reports" src="https://img.shields.io/badge/Markdown-Reports-000000?style=flat-square&amp;logo=markdown&amp;logoColor=white">
   <img alt="Codex Agent Skill" src="https://img.shields.io/badge/Agent_Skill-Codex-412991?style=flat-square&amp;logo=openai&amp;logoColor=white">
+  <a href="https://github.com/obra/superpowers"><img alt="Superpowers Compatible" src="https://img.shields.io/badge/Superpowers-Compatible-6B46C1?style=flat-square"></a>
   <img alt="English and Brazilian Portuguese" src="https://img.shields.io/badge/Locales-EN_%7C_PT--BR-009C3B?style=flat-square">
   <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/License-MIT-2EA44F?style=flat-square&amp;logo=opensourceinitiative&amp;logoColor=white"></a>
 </p>
@@ -58,6 +59,13 @@ Invoke it explicitly:
 ```text
 Use $verified-code-security-audit to audit this repository and generate a verified security report.
 ```
+
+### Operational discipline and Superpowers
+
+This skill aligns with the execution standards of [Superpowers](https://github.com/obra/superpowers):
+- **Task Tracking (`using-superpowers`):** The agent maintains an active task checklist across all 5 audit phases.
+- **Root-Cause Investigation (`systematic-debugging`):** Findings must be supported by verified end-to-end exploit paths rather than speculative pattern matching.
+- **Verification Before Completion (`verification-before-completion`):** Execution concludes only after `vcsa validate` and `vcsa render` succeed and deliverables are verified.
 
 The skill calls `vcsa` to validate and render its deliverables, so install the
 Python tools below before running an audit.
