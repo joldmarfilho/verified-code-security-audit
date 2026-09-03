@@ -27,7 +27,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pypdf>=5"]
+dev = ["pypdf>=5", "PyYAML>=6.0"]
 
 [project.scripts]
 vcsa = "verified_code_security_audit.cli:entrypoint"

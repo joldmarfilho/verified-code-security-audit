@@ -1,0 +1,6 @@
+interface:
+  display_name: "Verified Code Security Audit"
+  short_description: "Evidence-backed audits with bilingual reports"
+  default_prompt: "Use $verified-code-security-audit to audit this repository and generate a verified security report."
+policy:
+  allow_implicit_invocation: true

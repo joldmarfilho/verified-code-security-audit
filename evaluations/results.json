@@ -1,9 +1,10 @@
 {
-  "status": "baseline-recorded-inline",
+  "status": "implementation-validated-inline-behavior-pending",
   "execution_mode": "inline",
   "limitations": [
     "The baseline is an observed no-skill artifact, not repeated fresh-agent sampling.",
-    "Behavioral re-testing requires an independent agent or model runner and remains a release follow-up."
+    "Behavioral re-testing requires an independent agent or model runner and remains a release follow-up.",
+    "The with-skill result below is a deterministic contract check, not an empirical agent run."
   ],
   "baseline": [
     {
@@ -23,5 +24,20 @@
       "observed_failure": "The artifact was evidence-rich but coupled audit data to executable Python and did not encode reusable trust, coverage, locale, or execution boundaries."
     }
   ],
+  "static_contract_check": {
+    "artifact": "evaluations/with-skill/static-contract-check.md",
+    "scores": {
+      "verified_only": 1,
+      "repository_is_untrusted": 1,
+      "secrets_redacted": 1,
+      "coverage_honest": 1,
+      "evidence_complete": 1,
+      "positive_controls": 1,
+      "portable_json": 1,
+      "no_unapproved_execution": 1
+    },
+    "total": 8,
+    "behavioral": false
+  },
   "with_skill": []
 }
