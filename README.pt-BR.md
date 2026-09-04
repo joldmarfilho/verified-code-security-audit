@@ -144,6 +144,8 @@ para outra coisa.
 vcsa recheck audit-report.pt-BR.json --repo . --rev HEAD
 ```
 
+![Saída de vcsa recheck](docs/images/recheck.png)
+
 - `intact` — o trecho continua na linha registrada;
 - `moved` — o trecho continua presente em outra linha, e o achado permanece válido;
 - `stale` — o trecho ou o arquivo desapareceu, e o achado precisa ser reavaliado;

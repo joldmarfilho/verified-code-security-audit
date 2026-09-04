@@ -144,6 +144,8 @@ something else entirely.
 vcsa recheck audit-report.en.json --repo . --rev HEAD
 ```
 
+![vcsa recheck output](docs/images/recheck.png)
+
 - `intact` — the snippet is still at the recorded line;
 - `moved` — the snippet is still present at a different line, so the finding holds;
 - `stale` — the snippet or its file is gone, so the finding must be re-reviewed;
