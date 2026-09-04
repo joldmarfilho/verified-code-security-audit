@@ -131,6 +131,31 @@ vcsa render audit-report.en.json --locale en --output docs/security-audit
 `metadata.content_locale` deve coincidir com `--locale`. Corrija o JSON e execute
 novamente os dois comandos em vez de editar PDF ou Markdown manualmente.
 
+## Um relatório expira
+
+A evidência está presa à revisão em que foi produzida: `metadata.revision`,
+`branch` e `worktree_dirty` são campos obrigatórios, e a revisão é impressa no
+relatório. Quando o código anda, um caminho e uma linha registrados podem apontar
+para outra coisa.
+
+`vcsa recheck` compara cada trecho registrado com uma revisão e o classifica:
+
+```bash
+vcsa recheck audit-report.pt-BR.json --repo . --rev HEAD
+```
+
+- `intact` — o trecho continua na linha registrada;
+- `moved` — o trecho continua presente em outra linha, e o achado permanece válido;
+- `stale` — o trecho ou o arquivo desapareceu, e o achado precisa ser reavaliado;
+- `unverifiable` — o trecho foi redigido e não pode ser comparado.
+
+O comando termina com código `1` quando alguma evidência está `stale`, o que
+permite usá-lo como gate de CI que expira o relatório quando o código auditado
+muda por baixo dele. A comparação ignora indentação, então uma reformatação
+sozinha normalmente não invalida a evidência; ainda assim, `recheck` não revalida o
+raciocínio — um trecho que sobreviveu não prova que o caminho de exploração
+sobreviveu.
+
 ## Por que priorizar evidências
 
 Todo achado exige caminho relativo ao repositório, linhas exatas, trecho mínimo,

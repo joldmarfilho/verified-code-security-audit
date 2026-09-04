@@ -131,6 +131,30 @@ vcsa render audit-report.pt-BR.json --locale pt-BR --output docs/security-audit
 `metadata.content_locale` must match `--locale`. Correct the JSON and rerun both
 commands instead of hand-editing a PDF or Markdown output.
 
+## A report expires
+
+Evidence is pinned to the revision it was produced against: `metadata.revision`,
+`branch`, and `worktree_dirty` are required fields, and the revision is printed on
+the report. Once the code moves, a recorded path and line number can point at
+something else entirely.
+
+`vcsa recheck` compares each recorded snippet against a revision and classifies it:
+
+```bash
+vcsa recheck audit-report.en.json --repo . --rev HEAD
+```
+
+- `intact` — the snippet is still at the recorded line;
+- `moved` — the snippet is still present at a different line, so the finding holds;
+- `stale` — the snippet or its file is gone, so the finding must be re-reviewed;
+- `unverifiable` — the snippet was redacted and cannot be matched.
+
+The command exits `1` when any evidence is stale, which makes it usable as a CI
+gate that expires a report when the audited code changes underneath it. Matching
+ignores indentation, so a reformat alone will not usually invalidate evidence, but
+`recheck` never revalidates the reasoning — a surviving snippet is not proof that
+its exploit path survived.
+
 ## Why evidence-first
 
 Every finding requires a repository-relative path, exact lines, a minimal snippet,

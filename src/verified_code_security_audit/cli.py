@@ -13,6 +13,12 @@ from verified_code_security_audit import __version__
 from verified_code_security_audit.localization import SUPPORTED_LOCALES, load_locale
 from verified_code_security_audit.markdown import render_issues
 from verified_code_security_audit.pdf import render_pdf
+from verified_code_security_audit.recheck import (
+    STALE,
+    GitUnavailableError,
+    recheck_report,
+    resolve_revision,
+)
 from verified_code_security_audit.validation import (
     AuditValidationError,
     load_report,
@@ -36,6 +42,14 @@ def _parser() -> argparse.ArgumentParser:
     validate = subcommands.add_parser("validate", help="validate an audit JSON file")
     validate.add_argument("input", type=Path, metavar="INPUT")
     validate.add_argument("--locale", choices=SUPPORTED_LOCALES)
+
+    recheck = subcommands.add_parser(
+        "recheck",
+        help="check recorded evidence against a newer revision",
+    )
+    recheck.add_argument("input", type=Path, metavar="INPUT")
+    recheck.add_argument("--repo", type=Path, default=Path("."), metavar="DIRECTORY")
+    recheck.add_argument("--rev", default="HEAD", metavar="REVISION")
 
     render = subcommands.add_parser("render", help="render PDF and Markdown outputs")
     render.add_argument("input", type=Path, metavar="INPUT")
@@ -101,6 +115,31 @@ def _declared_locale(report: Mapping[str, object]) -> str:
     return str(metadata["content_locale"])
 
 
+def _recheck(report: Mapping[str, object], repository: Path, revision: str) -> int:
+    metadata = report["metadata"]
+    recorded = str(metadata["revision"]) if isinstance(metadata, Mapping) else "unknown"
+    try:
+        resolved = resolve_revision(repository, revision)
+        statuses = recheck_report(report, repository, resolved)
+    except GitUnavailableError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+
+    print(f"recorded revision: {recorded}")
+    print(f"checked revision:  {resolved}")
+    for status in statuses:
+        location = status.path
+        if status.current_line and status.current_line != status.recorded_line:
+            location += f":{status.recorded_line} -> :{status.current_line}"
+        else:
+            location += f":{status.recorded_line}"
+        print(f"{status.status:<13} {location}  ({status.owner})")
+
+    stale = sum(1 for status in statuses if status.status == STALE)
+    print(f"{len(statuses)} evidence entries checked, {stale} stale")
+    return 1 if stale else 0
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     """Run the CLI and return a process-compatible exit code."""
 
@@ -117,6 +156,9 @@ def main(argv: Sequence[str] | None = None) -> int:
                 validate_report(report, expected_locale=arguments.locale)
             print(f"valid: {arguments.input}")
             return 0
+
+        if arguments.command == "recheck":
+            return _recheck(report, arguments.repo, arguments.rev)
 
         locale = arguments.locale or _declared_locale(report)
         load_locale(locale)
