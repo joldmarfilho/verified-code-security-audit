@@ -94,7 +94,12 @@ def _locate(blob: str, snippet: str) -> int | None:
 
 
 def _entries(report: Mapping[str, object]) -> Iterator[tuple[str, Mapping[str, object]]]:
-    labels = (("findings", "finding"), ("strengths", "strength"), ("stack", "stack"))
+    labels = (
+        ("findings", "finding"),
+        ("strengths", "strength"),
+        ("categories", "category"),
+        ("stack", "stack"),
+    )
     for key, kind in labels:
         items = report.get(key)
         if not isinstance(items, Sequence):

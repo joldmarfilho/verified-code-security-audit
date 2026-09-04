@@ -140,7 +140,7 @@ class RecheckTests(RepositoryFixture):
         statuses = recheck_report(report, self.repository)
         self.assertTrue(statuses)
         owners = {status.owner.split(":", 1)[0] for status in statuses}
-        self.assertEqual(owners, {"finding", "strength", "stack"})
+        self.assertEqual(owners, {"finding", "strength", "category", "stack"})
         self.assertTrue(all(status.status == INTACT for status in statuses))
 
 
