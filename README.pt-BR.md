@@ -153,10 +153,17 @@ vcsa recheck audit-report.pt-BR.json --repo . --rev HEAD
 
 O comando termina com código `1` quando alguma evidência está `stale`, o que
 permite usá-lo como gate de CI que expira o relatório quando o código auditado
-muda por baixo dele. A comparação ignora indentação, então uma reformatação
-sozinha normalmente não invalida a evidência; ainda assim, `recheck` não revalida o
-raciocínio — um trecho que sobreviveu não prova que o caminho de exploração
-sobreviveu.
+muda por baixo dele. Aponte `--rev` para a revisão em análise e o gate roda antes
+do merge, de modo que um achado `stale` seja bloqueado em vez de marcado depois de
+já ter chegado ao ramo principal:
+
+```yaml
+- run: vcsa recheck audit-report.pt-BR.json --repo . --rev "$GITHUB_SHA"
+```
+
+A comparação ignora indentação, então uma reformatação sozinha normalmente não
+invalida a evidência; ainda assim, `recheck` não revalida o raciocínio — um trecho
+que sobreviveu não prova que o caminho de exploração sobreviveu.
 
 ## Por que priorizar evidências
 

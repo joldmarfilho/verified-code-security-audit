@@ -152,10 +152,17 @@ vcsa recheck audit-report.en.json --repo . --rev HEAD
 - `unverifiable` — the snippet was redacted and cannot be matched.
 
 The command exits `1` when any evidence is stale, which makes it usable as a CI
-gate that expires a report when the audited code changes underneath it. Matching
-ignores indentation, so a reformat alone will not usually invalidate evidence, but
-`recheck` never revalidates the reasoning — a surviving snippet is not proof that
-its exploit path survived.
+gate that expires a report when the audited code changes underneath it. Point
+`--rev` at the revision under review and the gate runs before the merge, so a
+stale finding is blocked instead of being marked after it reaches the main branch:
+
+```yaml
+- run: vcsa recheck audit-report.en.json --repo . --rev "$GITHUB_SHA"
+```
+
+Matching ignores indentation, so a reformat alone will not usually invalidate
+evidence, but `recheck` never revalidates the reasoning — a surviving snippet is
+not proof that its exploit path survived.
 
 ## Why evidence-first
 
