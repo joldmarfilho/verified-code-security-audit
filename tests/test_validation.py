@@ -135,6 +135,65 @@ class ValidationTests(unittest.TestCase):
         report["coverage"][0].update(status="sampled", reviewed=3)
         validate_report(report)
 
+    def test_rejects_absent_surface_with_discovered_items_or_unknown_total(self) -> None:
+        for discovered in (5, None):
+            with self.subTest(discovered=discovered):
+                report = valid_report()
+                report["coverage"][0].update(
+                    status="not-applicable", discovered=discovered, reviewed=0
+                )
+                with self.assertRaisesRegex(AuditValidationError, "discovered == 0"):
+                    validate_report(report)
+
+    def test_rejects_sampling_without_a_known_set_or_reviewed_item(self) -> None:
+        for discovered, reviewed in ((None, 1), (5, 0), (0, 0)):
+            with self.subTest(discovered=discovered, reviewed=reviewed):
+                report = valid_report()
+                report["coverage"][0].update(
+                    status="sampled", discovered=discovered, reviewed=reviewed
+                )
+                with self.assertRaisesRegex(AuditValidationError, "sampled coverage requires"):
+                    validate_report(report)
+
+    def test_accepts_absent_surface_and_limited_unknown_total(self) -> None:
+        for status, discovered, reviewed in (
+            ("not-applicable", 0, 0), ("limited", None, 1), ("limited", 5, 0)
+        ):
+            report = valid_report()
+            report["coverage"][0].update(
+                status=status, discovered=discovered, reviewed=reviewed
+            )
+            validate_report(report)
+
+    def test_schema_diagnostics_do_not_echo_values_or_unknown_keys(self) -> None:
+        markers = ("ghp_" + "SYNTHETIC" * 4, "VCSA_SYNTHETIC_PASSWORD_123")
+        for marker in markers:
+            for field in ("enum", "type", "extra", "required"):
+                with self.subTest(marker=marker, field=field):
+                    report = valid_report()
+                    if field == "enum":
+                        report["metadata"]["content_locale"] = marker
+                    elif field == "type":
+                        report["metadata"]["worktree_dirty"] = {marker: marker}
+                    elif field == "extra":
+                        report["metadata"][marker] = marker
+                    else:
+                        report["metadata"] = {marker: marker}
+                    with self.assertRaises(AuditValidationError) as caught:
+                        validate_report(report)
+                    self.assertNotIn(marker, str(caught.exception))
+                    self.assertIn("$.metadata", str(caught.exception))
+
+    def test_semantic_diagnostics_do_not_echo_arbitrary_identifiers(self) -> None:
+        marker = "VCSA_SYNTHETIC_PASSWORD_123"
+        report = valid_report()
+        report["findings"][0]["category_id"] = marker
+        report["findings"][0]["id"] = marker
+        report["findings"][1]["id"] = marker
+        with self.assertRaises(AuditValidationError) as caught:
+            validate_report(report)
+        self.assertNotIn(marker, str(caught.exception))
+
     def test_rejects_non_object_json(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "audit.json"

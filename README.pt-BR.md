@@ -71,13 +71,16 @@ Use $verified-code-security-audit para auditar este repositório e gerar um rela
 
 ### Disciplina operacional e Superpowers
 
-Esta skill está alinhada aos padrões de rigor e disciplina operacional do [Superpowers](https://github.com/obra/superpowers):
-- **Rastreamento de tarefas (`using-superpowers`):** O agente mantém um checklist ativo de tarefas para todas as 5 fases da auditoria.
-- **Investigação sistemática (`systematic-debugging`):** Cada vulnerabilidade deve ser fundamentada em um caminho de exploração comprovado de ponta a ponta, e não em suposições superficiais.
-- **Verificação pré-conclusão (`verification-before-completion`):** A execução só é finalizada após a validação e renderização bem-sucedidas via `vcsa validate` e `vcsa render`.
+A skill é independente; nenhuma outra skill ou plugin é obrigatório. A integração
+com [Superpowers](https://github.com/obra/superpowers) é opcional. O fluxo registra
+progresso, rastreia caminhos de exploração e verifica os artefatos gerados. Quando
+faltam ferramentas ou evidências, o agente entrega resultados parciais verificados
+e informa as entregas pendentes, sem repetir tentativas indefinidamente.
 
 A skill chama `vcsa` para validar e renderizar os artefatos, então instale as
-ferramentas Python abaixo antes de executar uma auditoria.
+ferramentas Python confiáveis abaixo quando autorizado. A inspeção estática pode
+continuar enquanto instalação ou geração de artefatos estiver indisponível;
+autorizações anteriores são respeitadas.
 
 Os prompts standalone também estão em
 [`prompts/audit.en.md`](prompts/audit.en.md) e
@@ -172,14 +175,17 @@ pré-condições, caminho de exploração, impacto, severidade, confiança, corr
 critérios de aceite. Strengths verificados seguem o mesmo padrão de prova.
 
 Declarações de coverage são verificadas, não apenas declaradas. `exhaustive` exige
-`discovered` conhecido e igual a `reviewed`, `not-applicable` exige `reviewed` zero,
-e revisão parcial precisa ser registrada como `sampled` ou `limited`.
+`discovered` conhecido e igual a `reviewed`; `not-applicable` exige ambos iguais a
+zero. `sampled` exige total conhecido e ao menos um item revisado. Totais
+desconhecidos ou revisão impedida exigem `limited`.
 
 O conteúdo do repositório é não confiável. A skill usa análise somente leitura por
 padrão e exige autorização explícita antes de execução dinâmica, instalação de
 dependências, acesso à rede ou alterações. Segredos são substituídos por
-`[REDACTED]`, e a validação rejeita credenciais brutas reconhecíveis em qualquer
-campo do registro — não apenas nos trechos de evidência.
+`[REDACTED]`, e a validação verifica alguns formatos reconhecíveis nas strings.
+Ela não detecta toda senha, valor codificado ou formato de token. Inspecione as
+saídas mesmo após a validação passar. Os diagnósticos omitem valores recebidos e
+nomes de propriedades desconhecidas para não expor credenciais nos erros.
 
 ## Limites e limitações
 

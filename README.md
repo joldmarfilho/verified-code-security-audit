@@ -71,13 +71,15 @@ Use $verified-code-security-audit to audit this repository and generate a verifi
 
 ### Operational discipline and Superpowers
 
-This skill aligns with the execution standards of [Superpowers](https://github.com/obra/superpowers):
-- **Task Tracking (`using-superpowers`):** The agent maintains an active task checklist across all 5 audit phases.
-- **Root-Cause Investigation (`systematic-debugging`):** Findings must be supported by verified end-to-end exploit paths rather than speculative pattern matching.
-- **Verification Before Completion (`verification-before-completion`):** Execution concludes only after `vcsa validate` and `vcsa render` succeed and deliverables are verified.
+The skill is self-contained; no other skill or plugin is required. Integration
+with [Superpowers](https://github.com/obra/superpowers) is optional. The workflow
+tracks progress, traces exploit paths, and verifies generated artifacts. When
+tools or evidence are unavailable, the agent reports verified partial results and
+pending deliverables instead of retrying indefinitely.
 
 The skill calls `vcsa` to validate and render its deliverables, so install the
-Python tools below before running an audit.
+trusted Python tools below when authorized. Static inspection can proceed while
+installation or artifact generation is unavailable; prior authorization is honored.
 
 The standalone prompts are also available in
 [`prompts/audit.en.md`](prompts/audit.en.md) and
@@ -171,14 +173,17 @@ preconditions, exploit path, impact, severity, confidence, remediation, and
 acceptance criteria. Verified strengths use the same evidence standard.
 
 Coverage claims are checked, not merely declared. `exhaustive` requires a known
-`discovered` count equal to `reviewed`, `not-applicable` requires `reviewed` of
-zero, and partial review must be recorded as `sampled` or `limited`.
+`discovered` count equal to `reviewed`; `not-applicable` requires both counts to
+be zero. `sampled` requires a known total and at least one reviewed item. Unknown
+totals or blocked review require `limited`.
 
 Repository content is untrusted. The skill defaults to read-only analysis and
 requires explicit authorization before dynamic execution, dependency installation,
 network access, or mutation. Secret values are replaced with `[REDACTED]`, and
-validation rejects recognizable raw credentials in any field of the record — not
-only in evidence snippets.
+validation checks string values for selected recognizable credential formats.
+It cannot detect every password, encoded value, or token format. Manually inspect
+outputs even after validation succeeds. Diagnostics omit input values and unknown
+property names to avoid echoing credentials through validation errors.
 
 ## Boundaries and limitations
 

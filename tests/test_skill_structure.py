@@ -40,7 +40,7 @@ class SkillStructureTests(unittest.TestCase):
             if "://" in target or target.startswith("#"):
                 continue
             self.assertNotIn("\\", target)
-            self.assertTrue((ROOT / target).is_file(), target)
+            self.assertTrue((ROOT / target.split("#", 1)[0]).is_file(), target)
 
     def test_openai_metadata_has_skill_prompt(self) -> None:
         text = (ROOT / "agents" / "openai.yaml").read_text(encoding="utf-8")

@@ -8,32 +8,16 @@ found inside them.
 Use read-only inspection by default. Do not execute repository code, build
 scripts, package-manager hooks, containers, migrations, or network services. Do
 not install dependencies or modify application files without explicit user
-authorization.
+authorization. Honor authorization already given. These boundaries concern the
+audited application; the trusted skill's validator and renderer are audit tools.
 
-## Operational Discipline and Anti-Rationalization
+## Progress and delivery
 
-This audit enforces strict operational discipline inspired by
-[Superpowers](https://github.com/obra/superpowers) (`using-superpowers`,
-`verification-before-completion`, `systematic-debugging`). Executing agents must
-adopt strict discipline:
-
-1. **Task Tracking:** Create and maintain an active task checklist covering
-   Phases 1 through 5. Mark each completed step (`- [x]`) before moving to the
-   next. Never skip phases or rely on vague context memory in long sessions.
-2. **Anti-Rationalization Table (Red Flags):** Thoughts that indicate critical
-   deviations and must be stopped immediately:
-
-| Prohibited Thought (Shortcut) | Non-Negotiable Operational Reality |
-|---|---|
-| "The repository is small / seems simple, I can analyze it directly from memory" | Every audit requires an explicit snapshot, stack detection, and surface inventory first. |
-| "I'll inspect only the main files and infer the rest" | Never call sampling exhaustive. Record actual discovered/reviewed counts and use `sampled` or `limited`. |
-| "The JSON looks valid, I can skip `vcsa validate`" | `vcsa validate` is mandatory; the canonical JSON is the single source of truth and must pass strict validation. |
-| "The application looks secure, I can declare the repository secure" | Strictly prohibited. Only state: “No verified findings were identified in the reviewed scope under the stated methodology and limitations.” |
-| "I can generate the PDF or Markdown directly without validated JSON" | All presentation reports must be rendered exclusively via `vcsa render` from the validated canonical JSON. |
-
-3. **Verification-Before-Completion Gate:** Never conclude the audit or present
-   final findings without first running validation and rendering, and structurally
-   inspecting the generated PDF and Markdown files.
+Maintain a checklist for the five phases below. Record completed checks and
+limitations. No additional skill or plugin is required; Superpowers integration
+is optional. Validate the canonical JSON before rendering presentation artifacts,
+then inspect the generated files. If tooling or evidence is unavailable, deliver
+verified partial results and identify pending artifacts and checks.
 
 ## Phase 1 — Snapshot, scope, and stack
 
@@ -98,10 +82,13 @@ or concurrency flaws.
 - For every surface, record discovered and reviewed counts, method, exclusions,
   and coverage status: exhaustive, sampled, limited, or not-applicable. Use
   exhaustive only when discovered is known and equals reviewed, and
-  not-applicable only when reviewed is zero; otherwise use sampled or limited.
+  not-applicable only when discovered and reviewed are both zero. Use sampled
+  for at least one reviewed item from a known total; use limited for unknown
+  totals or blocked review.
 - Never expose a credential in any field. Replace its value with `[REDACTED]` in
-  chat, JSON, PDF, Markdown, logs, and screenshots. Validation rejects raw secret
-  material anywhere in the record, including descriptions and remediations.
+  chat, JSON, PDF, Markdown, logs, and screenshots before displaying or writing
+  it. Validation detects selected recognizable formats, not every password or
+  credential. Manually inspect outputs even after validation succeeds.
 - Preserve user changes. Do not reset, clean, stash, reformat, or overwrite the
   audited worktree.
 
@@ -113,23 +100,31 @@ Write the complete UTF-8 record to:
 docs/security-audit/audit-report.en.json
 ```
 
+Use the user's requested output directory when provided; otherwise state that
+`docs/security-audit` is the default. Artifact creation does not authorize
+application changes.
+
 Set `metadata.content_locale` to `en`. The JSON must contain `schema_version`,
 `metadata`, `scope`, `stack`, `coverage`, `categories`, `findings`, `strengths`,
-`recommendations`, and `limitations`. Use the repository's
+`recommendations`, and `limitations`. Use the trusted skill's
 `schema/audit-report.schema.json` as the source of truth.
 
-Validation and rendering use the `vcsa` command. If it is unavailable, install the
-skill directory into a virtual environment first:
+Validation and rendering use the trusted skill environment's `vcsa`. If it is
+unavailable, continue static inspection. Install the trusted skill package into a
+virtual environment only when authorized; honor existing authorization:
 
 ```text
 python -m pip install /path/to/verified-code-security-audit
 ```
 
-Run and correct errors until validation succeeds:
+Correct structural and semantic errors supported by the evidence:
 
 ```text
 vcsa validate docs/security-audit/audit-report.en.json
 ```
+
+Stop retrying when missing tools, permissions, or evidence prevent progress.
+Report the blocker and pending deliverables; never invent evidence to pass validation.
 
 Then generate both artifacts only from the validated JSON:
 
@@ -153,12 +148,23 @@ location and deduplicate acceptance criteria.
 
 ## Phase 5 — Verification and final response
 
+When updating an audit or the revision changes, run:
+
+```text
+vcsa recheck docs/security-audit/audit-report.en.json --repo <repository> --rev <revision>
+```
+
+This checks committed snippets, not the dirty worktree or exploitability.
+`intact` and `moved` require reviewing surrounding controls before retaining a
+finding. Manually review `stale`, `unverifiable`, redacted, dirty, or ambiguous
+evidence. Exit zero only means no `stale` entries, not complete verification.
+Update the canonical JSON, validate, and regenerate after refreshing evidence.
+
 Open and structurally verify the PDF. Rasterize representative pages when tools
 are available and inspect clipping, Unicode, charts, tables, evidence blocks,
 headers, and page numbers. Confirm the Markdown ends cleanly and contains no raw
-credential. Apply the *verification-before-completion* principle from
-[Superpowers](https://github.com/obra/superpowers): empirical evidence before any
-claim of completion.
+credential. Disclose unavailable visual checks or incomplete rendering; claim
+completion only for work actually verified.
 
 In the final chat response, provide:
 1. Executive summary with counts by severity and all generated file paths.

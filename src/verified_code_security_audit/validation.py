@@ -74,7 +74,12 @@ def _schema_errors(report: Mapping[str, Any]) -> list[str]:
         if error.validator == "pattern" and is_path_field:
             errors.append(f"{location}: path must be repository-relative and use forward slashes")
         else:
-            errors.append(f"{location}: {error.message}")
+            # jsonschema messages can echo arbitrary credentials, including unknown
+            # property names. Only schema-owned constraints belong in diagnostics.
+            errors.append(
+                f"{location}: invalid value; schema constraint {error.validator} "
+                f"requires {error.validator_value!r}"
+            )
     return errors
 
 
@@ -119,35 +124,35 @@ def _semantic_errors(report: Mapping[str, Any], expected_locale: str | None) -> 
     metadata = report.get("metadata", {})
     if expected_locale is not None and metadata.get("content_locale") != expected_locale:
         errors.append(
-            "$.metadata.content_locale: "
-            f"expected {expected_locale!r}, got {metadata.get('content_locale')!r}"
+            "$.metadata.content_locale: does not match the requested locale"
         )
 
     categories = report.get("categories", [])
     category_ids = {item["id"] for item in categories}
     category_duplicates = _duplicates(item["id"] for item in categories)
-    for value in sorted(category_duplicates):
-        errors.append(f"duplicate category id: {value}")
+    if category_duplicates:
+        errors.append("$.categories: duplicate category id")
 
     findings = report.get("findings", [])
     finding_ids = {item["id"] for item in findings}
     finding_duplicates = _duplicates(item["id"] for item in findings)
-    for value in sorted(finding_duplicates):
-        errors.append(f"duplicate finding id: {value}")
-    for item in findings:
+    if finding_duplicates:
+        errors.append("$.findings: duplicate finding id")
+    for index, item in enumerate(findings):
         if item["category_id"] not in category_ids:
             errors.append(
-                f"finding {item['id']} references unknown category {item['category_id']}"
+                f"$.findings[{index}].category_id: references unknown category"
             )
 
     recommendation_ids = (item["id"] for item in report.get("recommendations", []))
-    for value in sorted(_duplicates(recommendation_ids)):
-        errors.append(f"duplicate recommendation id: {value}")
-    for recommendation in report.get("recommendations", []):
-        for finding_id in recommendation["finding_ids"]:
+    if _duplicates(recommendation_ids):
+        errors.append("$.recommendations: duplicate recommendation id")
+    for index, recommendation in enumerate(report.get("recommendations", [])):
+        for finding_index, finding_id in enumerate(recommendation["finding_ids"]):
             if finding_id not in finding_ids:
                 errors.append(
-                    f"recommendation {recommendation['id']} references unknown finding {finding_id}"
+                    f"$.recommendations[{index}].finding_ids[{finding_index}]: "
+                    "references unknown finding"
                 )
 
     for location, item in _all_evidence(report):
@@ -175,6 +180,13 @@ def _semantic_errors(report: Mapping[str, Any], expected_locale: str | None) -> 
                 errors.append(f"{location}: exhaustive coverage requires reviewed == discovered")
         if status == "not-applicable" and reviewed:
             errors.append(f"{location}: not-applicable coverage requires reviewed == 0")
+        if status == "not-applicable" and discovered != 0:
+            errors.append(f"{location}: not-applicable coverage requires discovered == 0")
+        if status == "sampled" and (discovered is None or reviewed == 0):
+            errors.append(
+                f"{location}: sampled coverage requires a known discovered count "
+                "and reviewed > 0; use limited when the total or review is unavailable"
+            )
     return errors
 
 

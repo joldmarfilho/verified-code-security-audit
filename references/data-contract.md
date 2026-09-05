@@ -73,8 +73,9 @@ Each record contains:
 
 `reviewed` cannot exceed a known `discovered` count. Validation also enforces the
 meaning of each status: `exhaustive` requires a known `discovered` count equal to
-`reviewed`, and `not-applicable` requires `reviewed` of zero. Partial review is
-`sampled` or `limited`.
+`reviewed`, and `not-applicable` requires both counts to be zero. `sampled`
+requires a known discovered count and at least one reviewed item. Use `limited`
+for unknown totals or when no items could be reviewed.
 
 ### `categories`
 
@@ -126,9 +127,12 @@ An evidence record contains:
 
 Line numbers refer to `metadata.revision` plus any declared dirty worktree state.
 Keep snippets under the schema limit. Preserve code exactly except for credentials:
-replace every sensitive value with `[REDACTED]`. Validation scans every string in
-the record, not only snippets, and rejects recognizable raw secret material in any
-field, including `description`, `remediation`, and `limitations`.
+replace every sensitive value with `[REDACTED]` before displaying or writing it.
+For structurally valid records, validation scans every string value, not only
+snippets, for selected recognizable secret formats. It does not detect every
+password, token format, encoded value, or secret split across fields. Manually
+inspect all outputs. Schema and semantic diagnostics omit input values; validation
+success is not a guarantee that the report contains no secrets.
 
 Long snippet lines are wrapped when rendered to PDF, so a wide line is never
 clipped off the page. Prefer the shortest excerpt that proves the point anyway.
@@ -209,7 +213,10 @@ Validate before rendering:
 vcsa validate audit-report.en.json
 ```
 
-Correct every structural and semantic error. Then render from the same file:
+Correct structural and semantic errors supported by available evidence. If tools,
+permissions, or missing evidence prevent progress, stop retrying and report partial
+results with pending deliverables. Never invent evidence to satisfy the schema.
+After validation succeeds, render from the same file:
 
 ```text
 vcsa render audit-report.en.json --locale en --output docs/security-audit

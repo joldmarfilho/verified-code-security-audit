@@ -1,0 +1,5 @@
+{
+  "GET /own-invoice/{id}": "handlers.py:own_invoice",
+  "GET /admin/summary": "handlers.py:admin_summary",
+  "GET /exports/{id}": "restricted.py:export"
+}

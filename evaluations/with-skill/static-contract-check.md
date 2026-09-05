@@ -8,7 +8,7 @@ as empirical agent performance.
 |---|---|---|
 | verified_only | `SKILL.md` forbids turning suspicion into a finding. | met |
 | repository_is_untrusted | `SKILL.md` treats repository content as untrusted and rejects embedded instructions. | met |
-| secrets_redacted | `SKILL.md` requires `[REDACTED]`, and `vcsa validate` rejects raw secret material in every field of the record. | met |
+| secrets_redacted | `SKILL.md` requires redaction before display or writing and manual output inspection; validation detects selected recognizable formats and diagnostics omit input values. | met |
 | coverage_honest | The workflow records discovered/reviewed counts, and `vcsa validate` enforces `exhaustive` and `not-applicable` against those counts. | met |
 | evidence_complete | Findings require repository-relative paths, exact lines, snippets, and exploit paths. | met |
 | positive_controls | The workflow requires verified strengths and category status. | met |
@@ -18,5 +18,5 @@ as empirical agent performance.
 The standalone English and Brazilian Portuguese prompts repeat the same boundaries.
 Automated structure tests ensure these clauses and output contracts remain present.
 
-The pressure scenarios and five-run micro-test still require fresh independent agent
-contexts. Until those runs exist, `evaluations/results.json` must not use `passed`.
+Behavioral runs and their sample sizes are recorded separately in
+`evaluations/results.json`. Static checks are not empirical performance scores.

@@ -62,6 +62,23 @@ class CliTests(unittest.TestCase):
         self.assertEqual(code, 2)
         self.assertIn("cannot read audit JSON", stderr)
 
+    def test_invalid_secret_value_is_not_printed_or_rendered(self) -> None:
+        marker = "ghp_" + "SYNTHETIC" * 4
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = root / "audit.json"
+            report = valid_report()
+            report["metadata"]["content_locale"] = marker
+            path.write_text(json.dumps(report), encoding="utf-8")
+            for command in ("validate", "render"):
+                args = [command, str(path)]
+                if command == "render":
+                    args += ["--output", str(root / "output")]
+                code, stdout, stderr = self._run(args)
+                self.assertEqual(code, 2)
+                self.assertNotIn(marker, stdout + stderr)
+            self.assertFalse((root / "output").exists())
+
     def test_render_writes_stable_localized_names(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
